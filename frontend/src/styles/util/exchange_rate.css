@@ -1,0 +1,66 @@
+.selectcurrency {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+}
+.selectcurrency option {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+}
+.flag {
+    margin-right: 8px;
+    width: 20px;
+    height: 15px;
+}
+.currency {
+    display: flex;
+    align-items: center;
+}
+
+.currency-select-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+.currency-select {
+    display: none;
+}
+.currency-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+.currency-selected img {
+    margin-right: 10px;
+    width: 20px; /* 크기 조정 */
+    height: 15px; /* 크기 조정 */
+}
+.currency-dropdown {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    width: 100%;
+    z-index: 1000;
+    max-height: 300px; /* 높이 조정 */
+    overflow-y: auto; /* 스크롤 추가 */
+}
+.currency-dropdown div {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+.currency-dropdown div:hover {
+    background-color: #f1f1f1;
+}
+.currency-dropdown img {
+    margin-right: 10px;
+    width: 20px; /* 크기 조정 */
+    height: 15px; /* 크기 조정 */
+}

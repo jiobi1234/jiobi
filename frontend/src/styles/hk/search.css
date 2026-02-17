@@ -1,0 +1,72 @@
+.hk-search-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.hk-search-header {
+  margin-bottom: 30px;
+}
+
+.hk-search-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.hk-search-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.hk-search-results {
+  margin-top: 30px;
+}
+
+.hk-search-results-header {
+  margin-bottom: 20px;
+}
+
+.hk-search-results-count {
+  color: #666;
+  font-size: 1rem;
+}
+
+.hk-search-region-filter {
+  color: var(--hk-primary);
+  font-weight: 600;
+}
+
+.hk-search-places-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.hk-search-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.hk-search-no-results,
+.hk-search-prompt {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .hk-search-places-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hk-search-form {
+    flex-direction: column;
+  }
+}
+
+

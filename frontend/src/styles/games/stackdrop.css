@@ -1,0 +1,153 @@
+/* 전체 게임 컨테이너 */
+#game-container {
+  width: 100%;
+  height: 90vh; /* 화면 높이에 맞춰 게임 영역을 90%로 설정 */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; 
+  align-items: center;
+  background-color: #f0f0f0;
+  box-sizing: border-box; /* 패딩과 보더를 크기 계산에 포함 */
+  overflow: hidden; /* 화면 밖으로 나가는 것을 숨김 */
+  margin: 0; /* 추가적인 여백이 없도록 설정 */
+  padding: 0;
+}
+
+/* 게임 영역 */
+#game-area {
+  width: 60%;
+  flex-grow: 1; /* 동적으로 영역을 채움 */
+  position: relative;
+  background-color: #e0e0e0;
+  overflow: hidden;
+  border: 2px solid #333;
+  box-sizing: border-box; /* 패딩과 경계를 포함하여 크기 계산 */
+}
+
+/* 상단 중앙에 떨어지는 사각형 */
+#falling-rectangle {
+  width: 8vw; /* 화면 너비의 8%로 설정 */
+  height: 4vh; /* 화면 높이의 4%로 설정 */
+  position: absolute;
+  top: 0;
+  background-color: #3498db;
+  border-radius: 5px;
+  transition: top 0.5s ease-in-out; /* 부드러운 낙하를 위한 트랜지션 */
+}
+
+/* 하단에 쌓이는 사각형 */
+#stacked-rectangles {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100%; /* 이 줄 추가 */
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  overflow: hidden; /* 블럭이 영역을 넘어서지 않도록 설정 */
+}
+
+/* 하단 버튼 설정 */
+#footer {
+  width: 100%;
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  background-color: #333;
+  height: 12vh; /* 명시적 높이 설정 */
+  margin-top: 2vh; /* 상단에 동적으로 2vh의 공백 추가 */
+}
+
+#drop-button {
+  padding: 10px 20px;
+  font-size: 1.5em;
+  color: white;
+  background-color: #e74c3c;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#drop-button:hover {
+  background-color: #c0392b;
+}
+
+#game-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  font-size: 1.5em; /* 기본 글자 크기 */
+  height: 10vh; /* 명시적 높이 설정 */
+}
+
+#time-left,
+#current-score,
+#high-score {
+  flex: 1;
+  text-align: center;
+}
+
+/* 표준 종료 메시지 박스 스타일 시작 */
+#standard-message-box {
+  position: absolute; /* relative가 아니라 game-area 내에서 absolute로 위치 */
+  top: 50%; /* 게임 영역 기준으로 중앙 */
+  left: 50%;
+  transform: translate(-50%, -50%); /* 정확히 중앙에 위치 */
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  z-index: 1000; /* 메시지 창이 다른 요소보다 위에 뜨도록 설정 */
+  display: none; /* 기본적으로 안 보이도록 설정 */
+}
+
+#standard-message-box p {
+  margin: 10px 0; /* 메시지와 점수에 적절한 여백 추가 */
+}
+
+#button-container {
+  display: flex;
+  justify-content: center; /* 버튼들을 가로로 가운데 정렬 */
+  margin-top: 20px; /* 버튼 위쪽에 공간 추가 */
+}
+
+#button-container button {
+  margin: 0 10px; /* 버튼 간의 간격 설정 */
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none; /* hidden 클래스에 대해 여전히 적용 */
+}
+
+/* 표준 종료 메시지 박스 스타일 종료 */
+
+/* 반응형 디자인: 모바일 및 작은 화면용 */
+@media (max-width: 768px) {
+  #game-area {
+    width: 100%;
+    height: calc(90vh - 15vh - 10vh - 5vh); /* game-info(15vh), footer(10vh), 여백 5vh */
+  }
+
+  #drop-button {
+    font-size: 1.2em; /* 버튼 폰트 크기 조정 */
+    padding: 8px 16px;
+  }
+
+  #game-info {
+    font-size: 3.0vw; /* 화면 너비의 4%에 맞춰 글자 크기를 설정 */
+    font-weight: bold; /* 글자 굵게 설정 */
+  }
+
+  /* 반응형 디자인: 모바일 및 작은 화면용 */
+  #falling-rectangle {
+    width: 5vw; /* 작은 화면에서는 조금 더 큰 비율로 설정 */
+    height: 3vh;
+    transition: top 0.5s ease-in-out; /* 부드러운 낙하를 위한 트랜지션 */
+  }
+}

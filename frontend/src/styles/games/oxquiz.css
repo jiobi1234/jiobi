@@ -1,0 +1,142 @@
+/* 기본 레이아웃 */
+.quiz-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f7f7f7;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 헤더 스타일링 */
+.quiz-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.timer, .score {
+    font-weight: bold;
+}
+
+#time-left {
+    font-size: 24px;
+    transition: color 0.5s;
+}
+
+/* 본문 스타일링 */
+.quiz-body {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#question-box {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+#question-text {
+    font-size: 24px;
+    font-weight: 500;
+}
+
+/* 푸터 스타일링 */
+.quiz-footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    background-color: #ccc;
+}
+
+#true-btn {
+    background-color: #2196F3;
+    color: white;
+    font-size: 24px;
+    padding: 20px 40px;
+    min-width: 120px;
+}
+
+#false-btn {
+    background-color: #F44336;
+    color: white;
+    font-size: 24px;
+    padding: 20px 40px;
+    min-width: 120px;
+}
+
+/* 게임 시작 버튼 스타일 */
+.start-btn {
+    background-color: #4CAF50;
+    color: white;
+    font-size: 20px;
+    padding: 15px 30px;
+    margin-top: 20px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+button:active:not(:disabled) {
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+.hidden {
+    display: none;
+}
+
+#message-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+#message-box button {
+    margin-top: 10px;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 600px) {
+    .quiz-container {
+        padding: 10px;
+    }
+
+    #question-text {
+        font-size: 20px;
+    }
+
+    button {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+}

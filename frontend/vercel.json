@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/:locale(ko|en)/hk/place/kakao/:id",
+      "destination": "/:locale"
+    }
+  ]
+}

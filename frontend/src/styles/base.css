@@ -1,0 +1,37 @@
+/* 기본 폰트 및 텍스트 정렬 */
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    text-align: center;
+    line-height: 1.6;
+}
+
+/* 헤더 영역 */
+header a {
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+header a:hover {
+    color: #7c3aed; /* Tailwind 보라색 */
+}
+
+/* 광고 여백 */
+.adsbygoogle {
+    margin: 1rem auto;
+}
+
+/* 하단 영역 */
+footer {
+    font-size: 0.875rem;
+    color: #6b7280;
+    background-color: transparent;
+}
+
+/* 기본 링크 스타일 */
+a {
+    color: #4b5563;
+}
+
+a:hover {
+    color: #7c3aed;
+}

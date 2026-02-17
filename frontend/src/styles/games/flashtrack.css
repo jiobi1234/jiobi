@@ -1,0 +1,349 @@
+/* 전체 레이아웃 */
+body,
+h1,
+p,
+button {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.game-wrapper {
+  text-align: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.game-title {
+  font-size: 2em;
+  margin-bottom: 20px;
+}
+
+/* 점수판 스타일 */
+.score-display {
+  margin-bottom: 20px; /* 게임 화면과 20px 간격 */
+  font-size: 1.5em;
+}
+
+/* 원형 배치 */
+.grid {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  margin: 0 auto;
+}
+
+.quarter-button {
+  position: absolute;
+  border-radius: 100% 0 0 0;  /* 도넛 모양을 유지 */
+  cursor: pointer;
+  border: none;
+  background-size: cover;  /* 이미지 크기를 버튼 크기에 맞추기 */
+  background-repeat: no-repeat;  /* 이미지 반복 방지 */
+  transition: all 0.2s ease; /* 부드러운 전환 효과 */
+  transform-origin: center; /* 변형의 중심점을 중앙으로 설정 */
+  filter: brightness(1) saturate(1); /* 기본 필터 설정 */
+}
+
+.quarter-button:hover {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.quarter-button:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+/* 클릭 효과 클래스 - 각 버튼별로 개별 적용 */
+#inner-btn-1.button-clicked {
+  transform: rotate(0deg) scale(0.95) !important;
+}
+
+#inner-btn-2.button-clicked {
+  transform: rotate(90deg) scale(0.95) !important;
+}
+
+#inner-btn-3.button-clicked {
+  transform: rotate(270deg) scale(0.95) !important;
+}
+
+#inner-btn-4.button-clicked {
+  transform: rotate(180deg) scale(0.95) !important;
+}
+
+#outer-btn-1.button-clicked {
+  transform: rotate(0deg) scale(0.95) !important;
+}
+
+#outer-btn-2.button-clicked {
+  transform: rotate(90deg) scale(0.95) !important;
+}
+
+#outer-btn-3.button-clicked {
+  transform: rotate(270deg) scale(0.95) !important;
+}
+
+#outer-btn-4.button-clicked {
+  transform: rotate(180deg) scale(0.95) !important;
+}
+
+/* 바깥쪽 도넛 버튼 */
+#outer-btn-1 {
+  width: 270px;
+  height: 270px;
+  top: 0;
+  left: 0;
+  transform: rotate(0deg);
+  background-color: #FF6347; /* 빨강 */
+}
+
+#outer-btn-2 {
+  width: 270px;
+  height: 270px;
+  top: 0;
+  right: 0;
+  transform: rotate(90deg);
+  background-color: #FFA500; /* 주황 */
+}
+
+#outer-btn-3 {
+  width: 270px;
+  height: 270px;
+  bottom: 0;
+  left: 0;
+  transform: rotate(270deg);
+  background-color: #FFFF00; /* 노랑 */
+}
+
+#outer-btn-4 {
+  width: 270px;
+  height: 270px;
+  bottom: 0;
+  right: 0;
+  transform: rotate(180deg);
+  background-color: #008000; /* 초록 */
+}
+
+/* 바깥쪽 하얀 간격 원 */
+.outer-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 330px;
+  height: 330px;
+  background-color: #f4f4f4;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* 안쪽 도넛 버튼 */
+.inner-button {
+  width: 135px;
+  height: 135px;
+}
+
+#inner-btn-1 {
+  top: 165px;
+  left: 165px;
+  transform: rotate(0deg);
+  background-color: #00FFFF; /* 하늘색 */
+}
+
+#inner-btn-2 {
+  top: 165px;
+  right: 165px;
+  transform: rotate(90deg);
+  background-color: #0000FF; /* 파랑 */
+}
+
+#inner-btn-3 {
+  bottom: 165px;
+  left: 165px;
+  transform: rotate(270deg);
+  background-color: #800080; /* 보라 */
+}
+
+#inner-btn-4 {
+  bottom: 165px;
+  right: 165px;
+  transform: rotate(180deg);
+  background-color: #FFC0CB; /* 핑크 */
+}
+
+/* 안쪽 하얀 간격 원 */
+.inner-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 135px;
+  height: 135px;
+  background-color: #f4f4f4;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 메시지 창 스타일 */
+#message-box {
+  position: absolute; /* 게임 화면의 중앙으로 */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border: 2px solid #333;
+  padding: 20px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  z-index: 1000;
+}
+
+#message-box p {
+  margin-bottom: 20px;
+  font-size: 1.2em;
+}
+
+#message-box button {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 1em;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #333;
+  color: white;
+}
+
+#message-box button:hover {
+  background-color: #555;
+}
+
+.hidden {
+  display: none;
+}
+
+.stage-message {
+  position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid #333;
+    padding: 10px 20px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    z-index: 1000;
+    font-size: 2em;
+    color: #333;
+    border-radius: 10px;
+}
+
+.game-group {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  margin: 50px auto;
+  transform-origin: top left;
+  transition: transform 0.3s ease; /* 크기 조정에 부드러운 애니메이션 추가 */
+}
+
+/* 반응형 디자인 */
+@media (max-width: 800px) {
+  .grid {
+    width: 450px;
+    height: 450px;
+  }
+
+  .quarter-button {
+    width: 200px;
+    height: 200px;
+  }
+
+  .inner-button {
+    width: 100px;
+    height: 100px;
+  }
+
+  .outer-overlay {
+    width: 250px;
+    height: 250px;
+  }
+
+  .inner-overlay {
+    width: 100px;
+    height: 100px;
+  }
+
+  #message-box {
+    width: 90%;
+    padding: 10px;
+  }
+
+  .game-group {
+    transform: scale(0.75); /* 화면이 작아지면 비율을 줄임 */
+  }
+}
+
+
+@media (max-width: 400px) {
+  .game-group {
+    transform: scale(0.5); /* 더 작은 화면에서는 더 작게 축소 */
+  }
+}
+
+
+@keyframes scoreAnimation {
+  0% {
+      transform: scale(1);
+      color: #333;
+  }
+  50% {
+      transform: scale(1.5);
+      color: #FFD700; /* 점수가 올라갈 때 색상을 변경 */
+  }
+  100% {
+      transform: scale(1);
+      color: #333;
+  }
+  from { transform: scale(1); }
+  to { transform: scale(1.2); }
+}
+
+.score-display span {
+  display: inline-block;
+  transition: transform 0.5s ease-in-out;
+}
+
+.score-message {
+  position: absolute;
+  top: calc(50% + 30px);  /* 점수 위치에서 10px 더 아래로 설정 */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 1.2em;
+  opacity: 0;
+  animation: fadeInOut 1s forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 깜빡임 효과는 JavaScript에서 직접 처리하므로 CSS 애니메이션 제거 */

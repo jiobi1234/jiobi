@@ -1,0 +1,186 @@
+body {
+    font-family: 'Dovemayo_gothic', sans-serif;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100; /* 네비게이션 바가 콘텐츠 위에 표시되도록 함 */
+    padding: 5px 0 0; /* 상단 공간 확보 */
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0; /* 뷰포트 상단에 고정 */
+    height: calc(100vh - 48px);
+    padding-top: .5rem;
+    overflow-x: hidden;
+    overflow-y: auto; /* 필요시 내부 스크롤 활성화 */
+}
+
+.nav-link {
+    color: #333;
+}
+
+.nav-link.active {
+    color: #007bff;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+#year-calendar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3열 그리드 */
+    gap: 20px; /* 그리드 사이의 간격 */
+}
+
+.month-calendar {
+    border: 1px solid #ddd; /* 달력 테두리 */
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+}
+
+.month-header {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 한 주를 7개 칸으로 나눔 */
+    gap: 5px;
+}
+
+.days-grid div {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+    border-radius: 5px;
+}
+
+.day-of-week {
+    text-align: center;
+    font-weight: bold;
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* 공휴일 */
+.holiday {
+    color: red;
+    font-weight: bold;
+}
+
+/* 공휴일 이름 */
+.holiday-name {
+    color: #666;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    text-align: center;
+    position: absolute;
+    top: 35px;
+    left: 8px;
+    right: 8px;
+    word-break: keep-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* 기념일 */
+.memorial-day {
+    color: blue;
+    font-weight: bold;
+}
+
+/* 주말 */
+.weekend {
+    color: red;
+    font-weight: bold;
+}
+
+/* 주말에 마우스를 올렸을 때 스타일 */
+.weekend:hover {
+    pointer-events: none; /* 이 부분을 추가하여 주말에는 툴팁을 표시하지 않음 */
+}
+
+/* 달력 셀 스타일 */
+.calendar-cell {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 4px;
+    position: relative;
+}
+
+/* 날짜 숫자 기본 스타일 */
+.date-number {
+    margin-bottom: 4px;
+}
+
+/* 공휴일 날짜 */
+.date-number.holiday {
+    color: #ef4343;
+    font-weight: bold;
+}
+
+/* 오늘 날짜 */
+.date-number.today {
+    color: white;
+}
+
+/* 주말 날짜 (공휴일이 아닌 경우) */
+.date-number.weekend:not(.holiday) {
+    color: #ef4343;
+}
+
+/* 음력 날짜 */
+.lunar-date {
+    color: #999;
+    font-size: 0.7rem;
+    font-weight: normal;
+}
+
+/* 달력 셀 내부 정렬 */
+.calendar-cell {
+    padding: 8px;
+    position: relative;
+}
+
+/* 날짜 숫자 (왼쪽 위) */
+.date-number {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+/* 음력 날짜 (오른쪽 위) */
+.lunar-date {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: #999;
+    font-size: 0.7rem;
+    font-weight: normal;
+}

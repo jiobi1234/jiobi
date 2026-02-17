@@ -1,0 +1,314 @@
+/**
+ * HK 앱 공통 스타일
+ * 여러 컴포넌트에서 반복 사용되는 스타일 패턴을 추출
+ */
+
+/* ============================================
+   폼 관련 공통 스타일
+   ============================================ */
+
+.hk-form-group {
+  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hk-form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--hk-text-primary);
+}
+
+.hk-form-label .required {
+  color: var(--hk-error);
+  margin-left: 4px;
+}
+
+.hk-form-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1rem;
+  color: var(--hk-text-primary);
+  background: var(--hk-bg-primary);
+  border: 2px solid var(--hk-border-primary);
+  border-radius: var(--hk-radius-lg);
+  transition: var(--hk-transition);
+  outline: none;
+}
+
+.hk-form-input::placeholder {
+  color: var(--hk-text-tertiary);
+}
+
+.hk-form-input:hover:not(:disabled) {
+  border-color: var(--hk-primary);
+}
+
+.hk-form-input:focus {
+  border-color: var(--hk-primary);
+  box-shadow: 0 0 0 3px var(--hk-primary-light);
+}
+
+.hk-form-input:disabled {
+  background: var(--hk-bg-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hk-form-input--error {
+  border-color: var(--hk-error);
+}
+
+.hk-form-input--error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.hk-form-error {
+  font-size: 0.875rem;
+  color: var(--hk-error);
+}
+
+.hk-form-helper {
+  font-size: 0.875rem;
+  color: var(--hk-text-secondary);
+}
+
+/* ============================================
+   카드 관련 공통 스타일
+   ============================================ */
+
+.hk-card {
+  background: var(--hk-bg-primary);
+  border-radius: var(--hk-radius-lg);
+  box-shadow: var(--hk-shadow-md);
+  overflow: hidden;
+  transition: var(--hk-transition);
+}
+
+.hk-card:hover {
+  box-shadow: var(--hk-shadow-lg);
+  transform: translateY(-2px);
+}
+
+.hk-card-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--hk-border-primary);
+}
+
+.hk-card-body {
+  padding: 20px;
+}
+
+.hk-card-footer {
+  padding: 20px;
+  border-top: 1px solid var(--hk-border-primary);
+  background: var(--hk-bg-secondary);
+}
+
+/* ============================================
+   섹션 헤더 공통 스타일
+   ============================================ */
+
+.hk-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.hk-section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--hk-text-primary);
+  margin: 0;
+}
+
+.hk-section-subtitle {
+  font-size: 1rem;
+  color: var(--hk-text-secondary);
+  margin-top: 8px;
+}
+
+/* ============================================
+   페이지 헤더 공통 스타일
+   ============================================ */
+
+.hk-page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--hk-border-primary);
+}
+
+.hk-page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--hk-text-primary);
+  margin: 0;
+}
+
+.hk-page-description {
+  font-size: 1.1rem;
+  color: var(--hk-text-secondary);
+  margin: 8px 0 0 0;
+}
+
+/* ============================================
+   그리드 레이아웃 공통 스타일
+   ============================================ */
+
+.hk-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.hk-grid--2cols {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.hk-grid--3cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.hk-grid--4cols {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.hk-grid--responsive {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* ============================================
+   메시지/알림 공통 스타일
+   ============================================ */
+
+.hk-message {
+  padding: 12px 16px;
+  border-radius: var(--hk-radius-md);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.hk-message--success {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--hk-success);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.hk-message--error {
+  background-color: var(--hk-error-light);
+  color: var(--hk-error);
+  border: 1px solid var(--hk-error-border);
+}
+
+.hk-message--warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.hk-message--info {
+  background-color: var(--hk-primary-light);
+  color: var(--hk-primary);
+  border: 1px solid rgba(0, 102, 255, 0.3);
+}
+
+/* ============================================
+   로딩/빈 상태 공통 스타일
+   ============================================ */
+
+.hk-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--hk-text-secondary);
+}
+
+.hk-empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.hk-empty-state-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--hk-text-primary);
+  margin-bottom: 12px;
+}
+
+.hk-empty-state-description {
+  font-size: 1rem;
+  color: var(--hk-text-secondary);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   필터/드롭다운 공통 스타일
+   ============================================ */
+
+.hk-select {
+  background: var(--hk-bg-primary);
+  border: 2px solid var(--hk-border-primary);
+  padding: 10px 20px;
+  border-radius: var(--hk-radius-xl);
+  cursor: pointer;
+  transition: var(--hk-transition);
+  font-size: 14px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.hk-select:hover {
+  border-color: var(--hk-primary);
+  color: var(--hk-primary);
+}
+
+.hk-select:focus {
+  outline: none;
+  border-color: var(--hk-primary);
+  box-shadow: 0 0 0 3px var(--hk-primary-light);
+}
+
+/* ============================================
+   반응형 유틸리티
+   ============================================ */
+
+@media (max-width: 768px) {
+  .hk-grid--2cols,
+  .hk-grid--3cols,
+  .hk-grid--4cols {
+    grid-template-columns: 1fr;
+  }
+
+  .hk-section-title {
+    font-size: 1.25rem;
+  }
+
+  .hk-page-title {
+    font-size: 1.5rem;
+  }
+
+  .hk-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .hk-section-title {
+    font-size: 1.1rem;
+  }
+
+  .hk-page-title {
+    font-size: 1.25rem;
+  }
+}
+

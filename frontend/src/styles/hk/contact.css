@@ -1,0 +1,321 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f8f9fa;
+  margin: 0;
+  padding: 0;
+}
+
+.hk-contact-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  background: white;
+  min-height: calc(100vh - 120px);
+}
+
+.hk-contact-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.hk-contact-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.hk-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.hk-contact-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hk-contact-form-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hk-contact-required {
+  color: #dc3545;
+  font-size: 1.2rem;
+}
+
+.hk-contact-input,
+.hk-contact-select,
+.hk-contact-textarea {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+}
+
+.hk-contact-input:focus,
+.hk-contact-select:focus,
+.hk-contact-textarea:focus {
+  outline: none;
+  border-color: #0064ff;
+}
+
+.hk-contact-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.hk-contact-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.hk-contact-phone-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.hk-contact-country-select {
+  flex: 0 0 120px;
+}
+
+.hk-contact-phone-input {
+  flex: 1;
+}
+
+.hk-contact-file-input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.hk-contact-file-input {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+}
+
+.hk-contact-file-input-label {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+  text-align: center;
+  color: #666;
+}
+
+.hk-contact-file-input-label:hover {
+  border-color: #0064ff;
+}
+
+.hk-contact-privacy-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.hk-contact-privacy-checkbox {
+  margin-top: 3px;
+}
+
+.hk-contact-privacy-text {
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+.hk-contact-privacy-link {
+  color: #0064ff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.hk-contact-privacy-link:hover {
+  text-decoration: underline;
+}
+
+.hk-contact-submit-button {
+  width: 100%;
+  padding: 15px;
+  background: #0064ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+}
+
+.hk-contact-submit-button:hover {
+  background: #0052cc;
+}
+
+.hk-contact-privacy-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.hk-contact-privacy-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.hk-contact-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.hk-contact-modal-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.hk-contact-modal-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.hk-contact-modal-close:hover {
+  background: #e0e0e0;
+}
+
+.hk-contact-modal-content {
+  line-height: 1.6;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.hk-contact-modal-content h4 {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+  margin: 15px 0 8px 0;
+}
+
+.hk-contact-modal-content ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.hk-contact-modal-content li {
+  margin-bottom: 5px;
+}
+
+.hk-contact-modal-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+  text-align: center;
+}
+
+.hk-contact-modal-footer-text {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.hk-contact-modal-footer-link {
+  color: #0064ff;
+  text-decoration: none;
+}
+
+.hk-contact-modal-footer-link:hover {
+  text-decoration: underline;
+}
+
+.hk-contact-modal-confirm-btn {
+  background: #0064ff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.hk-contact-modal-confirm-btn:hover {
+  background: #0052cc;
+}
+
+@media (max-width: 768px) {
+  .hk-contact-container {
+    padding: 20px 15px;
+  }
+
+  .hk-contact-title {
+    font-size: 1.5rem;
+  }
+
+  .hk-contact-phone-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hk-contact-country-select {
+    flex: none;
+  }
+
+  .hk-contact-privacy-modal {
+    padding: 20px;
+    width: 95%;
+  }
+}
+
+

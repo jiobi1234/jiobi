@@ -1,0 +1,391 @@
+body {
+  background-color: #f8f9fa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.hk-mytravel-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: transparent;
+  min-height: 100vh;
+}
+
+.hk-mytravel-header {
+  text-align: left;
+  padding: 0 0 30px;
+  background: transparent;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.hk-mytravel-header-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 15px 0;
+}
+
+.hk-mytravel-header-description {
+  font-size: 1.1rem;
+  color: #6c757d;
+  margin: 0;
+  font-weight: 400;
+}
+
+.hk-mytravel-stats-section {
+  display: flex;
+  justify-content: flex-start;
+  gap: 30px;
+  margin: 0 0 40px;
+  padding: 0;
+}
+
+.hk-mytravel-stat-card {
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 25px 30px;
+  text-align: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  min-width: 200px;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.hk-mytravel-stat-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.hk-mytravel-stat-icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.hk-mytravel-stat-label {
+  font-size: 1rem;
+  color: #6c757d;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.hk-mytravel-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.hk-mytravel-recent-section {
+  padding: 0 0 40px;
+  margin: 0;
+}
+
+.hk-mytravel-trips-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 40px;
+}
+
+.hk-mytravel-sort-select {
+  padding: 12px 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 25px;
+  background: white;
+  font-size: 1rem;
+  color: #495057;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.hk-mytravel-sort-select:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+}
+
+.hk-mytravel-trips-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  justify-content: flex-start;
+}
+
+.hk-mytravel-trips-container::-webkit-scrollbar {
+  display: none;
+}
+
+.hk-mytravel-trip-card {
+  background: #f8f9fa;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  width: calc(33.333% - 14px);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.hk-mytravel-trip-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.hk-mytravel-trip-image {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hk-mytravel-trip-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hk-mytravel-trip-content {
+  padding: 25px;
+}
+
+.hk-mytravel-trip-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.hk-mytravel-trip-dates {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.hk-mytravel-trip-hashtags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.hk-mytravel-hashtag {
+  background: #f0f8ff;
+  color: #1976d2;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.hk-mytravel-trip-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.hk-mytravel-places-count {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.hk-mytravel-plan-again-button {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hk-mytravel-plan-again-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.hk-mytravel-footprints-section {
+  padding: 0 0 20px;
+  margin: 0;
+}
+
+.hk-mytravel-footprints-title {
+  text-align: left;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.hk-mytravel-map-container {
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+}
+
+.hk-mytravel-map {
+  width: 100%;
+  height: 500px;
+  border-radius: 15px;
+}
+
+.hk-mytravel-no-trips {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+/* 수정 방법 선택 모달 */
+.hk-mytravel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.hk-mytravel-modal-content {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px 28px 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.hk-mytravel-modal-title {
+  margin: 0 0 18px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.hk-mytravel-edit-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hk-mytravel-edit-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hk-mytravel-edit-option:hover {
+  border-color: #667eea;
+  background: #eef2ff;
+  transform: translateY(-1px);
+}
+
+.hk-mytravel-edit-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.hk-mytravel-edit-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #2c3e50;
+}
+
+.hk-mytravel-edit-description {
+  font-size: 0.82rem;
+  color: #6c757d;
+}
+
+.hk-mytravel-modal-close {
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: #e9ecef;
+  color: #495057;
+  transition: all 0.2s ease;
+}
+
+.hk-mytravel-modal-close:hover {
+  background: #dee2e6;
+}
+
+@media (max-width: 768px) {
+  .hk-mytravel-header-title {
+    font-size: 2rem;
+  }
+
+  .hk-mytravel-header-description {
+    font-size: 1rem;
+  }
+
+  .hk-mytravel-stats-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    margin: 0 auto 30px;
+  }
+
+  .hk-mytravel-stat-card {
+    width: 100%;
+    padding: 25px 20px;
+  }
+
+  .hk-mytravel-trip-card {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .hk-mytravel-trips-container {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .hk-mytravel-header {
+    padding: 40px 15px 30px;
+  }
+
+  .hk-mytravel-header-title {
+    font-size: 1.8rem;
+  }
+
+  .hk-mytravel-stat-card {
+    min-width: 250px;
+    padding: 25px 15px;
+  }
+
+  .hk-mytravel-trip-card {
+    min-width: 250px;
+  }
+}

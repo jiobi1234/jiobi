@@ -1,0 +1,82 @@
+body {
+    font-family: 'Dovemayo_gothic', sans-serif;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 5px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    height: calc(100vh - 48px);
+    padding-top: .5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.nav-link {
+    color: #333;
+}
+
+.nav-link.active {
+    color: #007bff;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+#bmiResult {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.chart-container {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 10%;
+    position: relative;
+}
+
+.chart-bar {
+    flex: 1;
+    height: 30px;
+    margin: 0 2px;
+    position: relative;
+}
+
+.chart-indicator {
+    position: absolute;
+    top: -10px;
+    width: 2px;
+    height: 50px;
+    background-color: black;
+}
+
+.chart-labels {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 10%;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.chart-labels .label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

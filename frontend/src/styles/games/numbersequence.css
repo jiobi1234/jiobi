@@ -1,0 +1,108 @@
+/* body 스타일은 base.html에서 관리 */
+
+.container {
+    width: 100%;
+    max-width: 500px; /* 최대 너비를 줄임 (600px → 500px) */
+    margin: 0 auto;
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.score, .timer, .high-score {
+    font-size: 1.3rem; /* 글씨 크기를 줄임 (1.5rem → 1.3rem) */
+    flex-basis: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.game-instruction {
+    font-size: 2.5vw; /* 글씨 크기를 줄임 (4vw → 2.5vw) */
+    color: #333;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.game-board {
+    display: grid;
+    grid-gap: 8px; /* 간격을 줄임 (10px → 8px) */
+    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 최소 너비 줄임 (100px → 80px) */
+    max-width: 100%;
+}
+
+.grid-item {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    font-size: 4vw; /* 숫자 크기를 줄임 (5vw → 4vw) */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: black;
+    height: 80px; /* 칸 높이를 줄임 (100px → 80px) */
+    box-sizing: border-box;
+}
+
+.grid-item.correct {
+    color: #DAA520;  /* 따뜻하고 눈에 띄는 금색 계열 변경 */
+    font-weight: bold;  /* 글자를 굵게 설정 */
+}
+
+.grid-item.wrong {
+    color: red;
+}
+
+.game-over-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.game-over-message {
+    font-size: 4vw; /* 메시지 크기를 화면 크기에 맞춰 조정 */
+    color: red;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.button-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.large-button {
+    font-size: 4vw; /* 버튼의 텍스트 크기를 화면 크기에 맞춰 조정 */
+    padding: 10px 20px;
+}
+
+/* 모바일 및 태블릿 크기에 맞춰 스타일 조정 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .grid-item {
+        font-size: 6vw; /* 모바일 화면에서 숫자 크기를 더 크게 조정 */
+        height: 70px;
+    }
+
+    .large-button {
+        font-size: 4.5vw; /* 모바일 화면에서 버튼 크기 조정 */
+        padding: 8px 16px;
+    }
+
+    .game-over-message {
+        font-size: 4.5vw; /* 모바일 화면에서 메시지 크기 조정 */
+    }
+}

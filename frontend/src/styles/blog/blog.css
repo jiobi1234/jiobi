@@ -1,0 +1,66 @@
+/* 카테고리 사이드바 */
+.category {
+    background: #fff;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+    height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.category h5 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+.category ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.category ul li {
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.category ul li:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+/* 글 목록 */
+.post-list {
+    background: #fafafa;
+    padding: 15px;
+    height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.post-list ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.post-list ul li {
+    background: #fff;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.post-list ul li:hover {
+    background: #f1f1f1;
+}
+
+.post-list ul li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+}
+
+.post-list ul li a:hover {
+    text-decoration: underline;
+}

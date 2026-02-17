@@ -1,0 +1,7 @@
+/* ===== 메인 CSS 파일 - @import 구조 ===== */
+
+/* 전역 기본 스타일 가져오기 */
+@import url("base_global.css");
+
+/* hkmain 전용 스타일 가져오기 */
+@import url("hkmain.css");

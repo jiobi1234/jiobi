@@ -1,0 +1,644 @@
+/* 명상 호흡 페이지 스타일 */
+
+/* 전체 컨테이너 - 다크 테마 */
+.breathing-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* 프리셋 버튼 */
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  color: #373e56;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+}
+
+.preset-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.preset-btn.active {
+  border-color: #7bed9f;
+  background: linear-gradient(135deg, #7bed9f, #22a6b3);
+  color: white;
+}
+
+.preset-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.preset-desc {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* 시간 선택기 (타이머 스타일) */
+.time-picker-container {
+  position: relative;
+}
+
+.time-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.time-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  user-select: none;
+  min-height: 100px;
+  justify-content: center;
+}
+
+.time-option {
+  padding: 4px 8px;
+  transition: all 0.2s ease;
+  min-width: 50px;
+  text-align: center;
+}
+
+.time-option:hover {
+  opacity: 0.7;
+}
+
+.time-option.current {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #373e56;
+}
+
+.separator {
+  margin: 0 8px;
+  align-self: center;
+}
+
+/* 입력 필드 (직접 입력 모드) */
+.time-input {
+  width: 60px;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #373e56;
+  border: 2px solid #7bed9f;
+  border-radius: 8px;
+  padding: 4px;
+  outline: none;
+}
+
+.time-input::-webkit-inner-spin-button,
+.time-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 패턴 요약 */
+.pattern-summary {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+/* 총 시간 선택 버튼 */
+.duration-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.duration-btn {
+  background: white;
+  color: #373e56;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 3px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.duration-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.duration-btn.active {
+  border-color: #7bed9f;
+  background: linear-gradient(135deg, #7bed9f, #22a6b3);
+  color: white;
+}
+
+/* 시작 버튼 */
+.start-button {
+  box-shadow: 0 8px 20px rgba(123, 237, 159, 0.4);
+}
+
+/* 세션 화면 */
+.session-screen {
+  padding: 40px 20px;
+}
+
+.session-content {
+  text-align: center;
+}
+
+/* 애니메이션 원 */
+.breath-circle-container {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breath-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #7bed9f, #22a6b3, #4834df);
+  box-shadow: 0 0 60px rgba(123, 237, 159, 0.6);
+  /* transition은 JavaScript에서 동적으로 설정 */
+}
+
+.breath-circle.inhale {
+  transform: scale(1.5);
+  box-shadow: 0 0 100px rgba(123, 237, 159, 0.9);
+}
+
+.breath-circle.exhale {
+  transform: scale(1);
+  box-shadow: 0 0 40px rgba(34, 166, 179, 0.6);
+}
+
+.breath-circle.hold-large {
+  /* 들숨 후 멈춤 - 큰 상태 유지 */
+  transform: scale(1.5);
+  box-shadow: 0 0 80px rgba(72, 52, 223, 0.7);
+}
+
+.breath-circle.hold-small {
+  /* 날숨 후 멈춤 - 작은 상태 유지 */
+  transform: scale(1);
+  box-shadow: 0 0 80px rgba(72, 52, 223, 0.7);
+}
+
+/* 텍스트 가이드 */
+.instruction-text {
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* 단계 타이머 */
+.step-timer {
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  font-family: 'Courier New', monospace;
+}
+
+/* 전체 타이머 */
+.total-timer {
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+/* 진행 바 */
+.progress-bar-container {
+  padding: 0 20px;
+}
+
+.progress-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill {
+  transition: width 1s linear;
+}
+
+/* 사이클 카운터 */
+.cycle-counter {
+  opacity: 0.8;
+}
+
+/* 컨트롤 버튼 */
+.control-btn {
+  min-width: 120px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* 완료 화면 */
+.completion-screen {
+  padding: 40px 20px;
+}
+
+.completion-icon {
+  animation: bounce 1s ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.completion-stats {
+  line-height: 1.8;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  /* 헤더 */
+  .breathing-container h1 {
+    font-size: 2.5rem;
+  }
+
+  .breathing-container header p {
+    font-size: 0.9rem;
+  }
+
+  /* 시간 선택기 */
+  .time-picker {
+    gap: 12px;
+  }
+
+  .time-section {
+    min-width: 70px;
+  }
+
+  .time-section label {
+    font-size: 0.75rem;
+  }
+
+  .time-option.current {
+    font-size: 2rem;
+  }
+
+  .time-option:not(.current) {
+    font-size: 1rem;
+  }
+
+  .separator {
+    font-size: 2rem;
+    margin: 0 4px;
+  }
+
+  .unit {
+    font-size: 0.75rem;
+  }
+
+  /* 애니메이션 원 */
+  .breath-circle-container {
+    width: 220px;
+    height: 220px;
+  }
+
+  .breath-circle {
+    width: 160px;
+    height: 160px;
+  }
+
+  /* 텍스트 */
+  .instruction-text {
+    font-size: 2.5rem;
+  }
+
+  .step-timer {
+    font-size: 4rem;
+  }
+
+  .total-timer {
+    font-size: 1rem;
+  }
+
+  .cycle-counter {
+    font-size: 0.9rem;
+  }
+
+  /* 프리셋 버튼 */
+  .preset-btn {
+    min-width: 110px;
+    padding: 10px 14px;
+  }
+
+  .preset-name {
+    font-size: 13px;
+  }
+
+  .preset-desc {
+    font-size: 10px;
+  }
+
+  /* 총 시간 버튼 */
+  .duration-btn {
+    padding: 10px 18px;
+    font-size: 14px;
+    min-width: 70px;
+  }
+
+  /* 시작 버튼 */
+  .start-button {
+    font-size: 1.25rem;
+    padding: 14px 40px;
+  }
+
+  /* 컨트롤 버튼 */
+  .control-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    min-width: 100px;
+  }
+
+  /* 완료 화면 */
+  .completion-icon {
+    font-size: 5rem;
+  }
+
+  .completion-content h2 {
+    font-size: 2.5rem;
+  }
+
+  .completion-stats {
+    font-size: 1rem;
+  }
+
+  .restart-button,
+  .back-button {
+    font-size: 1rem;
+    padding: 12px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 헤더 */
+  .breathing-container h1 {
+    font-size: 2rem;
+  }
+
+  .breathing-container header p {
+    font-size: 0.85rem;
+  }
+
+  /* 섹션 여백 */
+  .preset-section,
+  .breath-pattern-section,
+  .duration-section {
+    padding: 16px;
+  }
+
+  /* 호흡 시간 설정 - 2x2 그리드 배치 */
+  .breath-pattern-section .time-picker {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    max-width: 350px;
+    margin: 0 auto;
+  }
+
+  /* 총 명상 시간 - 1x2 그리드 배치 */
+  .duration-section .time-picker {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    gap: 16px;
+    max-width: 350px;
+    margin: 0 auto;
+  }
+
+  .time-section {
+    width: 100%;
+  }
+
+  .separator {
+    display: none;
+  }
+  
+  /* 호흡 패턴: 들숨, 정지1, 날숨, 정지2 순서 유지 */
+  .breath-pattern-section .inhale-selector { grid-column: 1; grid-row: 1; }
+  .breath-pattern-section .hold1-selector { grid-column: 2; grid-row: 1; }
+  .breath-pattern-section .exhale-selector { grid-column: 1; grid-row: 2; }
+  .breath-pattern-section .hold2-selector { grid-column: 2; grid-row: 2; }
+  
+  /* 총 시간: 분, 초 순서 */
+  .duration-section .duration-minute-selector { grid-column: 1; grid-row: 1; }
+  .duration-section .duration-second-selector { grid-column: 2; grid-row: 1; }
+
+  .time-picker-container {
+    padding: 20px;
+  }
+
+  .time-option.current {
+    font-size: 2.5rem;
+  }
+
+  .time-option:not(.current) {
+    font-size: 1.25rem;
+  }
+
+  /* 애니메이션 원 */
+  .breath-circle-container {
+    width: 180px;
+    height: 180px;
+  }
+
+  .breath-circle {
+    width: 130px;
+    height: 130px;
+  }
+
+  /* 텍스트 */
+  .instruction-text {
+    font-size: 2rem;
+  }
+
+  .step-timer {
+    font-size: 3rem;
+  }
+
+  .total-timer {
+    font-size: 0.9rem;
+  }
+
+  .cycle-counter {
+    font-size: 0.85rem;
+  }
+
+  /* 프리셋 버튼 - 세로 배치 */
+  .preset-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .preset-btn {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    min-width: unset;
+  }
+
+  /* 총 시간 버튼 - 그리드 배치 */
+  .duration-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .duration-btn {
+    width: 100%;
+    min-width: unset;
+    padding: 12px 16px;
+  }
+
+  /* 시작 버튼 */
+  .start-button {
+    font-size: 1.1rem;
+    padding: 14px 32px;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  /* 컨트롤 버튼 */
+  .controls {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  .control-btn {
+    width: 100%;
+    min-width: unset;
+    padding: 12px 24px;
+  }
+
+  /* 진행 바 */
+  .progress-bar-container {
+    padding: 0 10px;
+  }
+
+  /* 완료 화면 */
+  .completion-content {
+    padding: 32px 24px;
+  }
+
+  .completion-icon {
+    font-size: 4rem;
+  }
+
+  .completion-content h2 {
+    font-size: 2rem;
+  }
+
+  .completion-stats {
+    font-size: 0.95rem;
+  }
+
+  .completion-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .restart-button,
+  .back-button {
+    width: 100%;
+    max-width: 300px;
+    font-size: 0.95rem;
+    padding: 12px 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  /* 매우 작은 화면 */
+  .breathing-container h1 {
+    font-size: 1.75rem;
+  }
+
+  .breath-circle-container {
+    width: 150px;
+    height: 150px;
+  }
+
+  .breath-circle {
+    width: 110px;
+    height: 110px;
+  }
+
+  .instruction-text {
+    font-size: 1.75rem;
+  }
+
+  .step-timer {
+    font-size: 2.5rem;
+  }
+
+  .time-option.current {
+    font-size: 2rem;
+  }
+
+  .completion-icon {
+    font-size: 3rem;
+  }
+
+  .completion-content h2 {
+    font-size: 1.75rem;
+  }
+}
+
+/* 숨김 클래스 */
+.hidden {
+  display: none !important;
+}
+

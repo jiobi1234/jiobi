@@ -1,0 +1,54 @@
+/* HK 앱 전용 CSS 변수 */
+
+:root {
+  /* 메인 컬러 */
+  --hk-primary: #0066FF;
+  --hk-primary-hover: #0056E6;
+  --hk-primary-light: rgba(0, 102, 255, 0.1);
+  --hk-primary-dark: #0047B3;
+  
+  /* 텍스트 컬러 */
+  --hk-text-primary: #333333;
+  --hk-text-secondary: #666666;
+  --hk-text-tertiary: #999999;
+  
+  /* 배경 컬러 */
+  --hk-bg-primary: #FFFFFF;
+  --hk-bg-secondary: #F8F9FA;
+  --hk-bg-tertiary: #E9ECEF;
+  
+  /* 보더 컬러 */
+  --hk-border-primary: #E9ECEF;
+  --hk-border-secondary: #DEE2E6;
+  
+  /* 에러 컬러 */
+  --hk-error: #DC3545;
+  --hk-error-light: #FFF5F5;
+  --hk-error-border: #FED7D7;
+  
+  /* 성공 컬러 */
+  --hk-success: #28A745;
+  
+  /* 그림자 */
+  --hk-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --hk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --hk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --hk-shadow-primary: 0 4px 8px rgba(0, 102, 255, 0.3);
+  
+  /* 간격 */
+  --hk-spacing-xs: 4px;
+  --hk-spacing-sm: 8px;
+  --hk-spacing-md: 16px;
+  --hk-spacing-lg: 24px;
+  --hk-spacing-xl: 32px;
+  
+  /* 둥근 모서리 */
+  --hk-radius-sm: 8px;
+  --hk-radius-md: 12px;
+  --hk-radius-lg: 20px;
+  --hk-radius-xl: 25px;
+  
+  /* 전환 효과 */
+  --hk-transition: all 0.3s ease;
+}
+

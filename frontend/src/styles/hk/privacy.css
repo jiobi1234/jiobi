@@ -1,0 +1,97 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f8f9fa;
+  margin: 0;
+  padding: 0;
+}
+
+.hk-privacy-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 30px;
+  background: white;
+  min-height: calc(100vh - 120px);
+}
+
+.hk-privacy-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.hk-privacy-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.hk-privacy-content {
+  line-height: 1.8;
+  color: #333;
+}
+
+.hk-privacy-section {
+  margin-bottom: 40px;
+}
+
+.hk-privacy-section-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #0064ff;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #0064ff;
+}
+
+.hk-privacy-section-content {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #333;
+}
+
+.hk-privacy-section-content ul {
+  margin: 15px 0;
+  padding-left: 20px;
+}
+
+.hk-privacy-section-content li {
+  margin-bottom: 8px;
+  list-style-type: disc;
+}
+
+.hk-privacy-section-content p {
+  margin-bottom: 15px;
+}
+
+.hk-privacy-highlight {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-left: 4px solid #0064ff;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .hk-privacy-container {
+    padding: 20px 15px;
+  }
+
+  .hk-privacy-title {
+    font-size: 1.5rem;
+  }
+
+  .hk-privacy-section-title {
+    font-size: 1.1rem;
+  }
+
+  .hk-privacy-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+}
+
+

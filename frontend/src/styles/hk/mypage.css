@@ -1,0 +1,179 @@
+ .hk-mypage-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--hk-spacing-xl) var(--hk-spacing-md);
+}
+
+.hk-mypage-welcome {
+  background: var(--hk-bg-primary);
+  border-radius: var(--hk-radius-lg);
+  padding: var(--hk-spacing-xl);
+  margin-bottom: var(--hk-spacing-xl);
+  box-shadow: var(--hk-shadow-md);
+  display: flex;
+  align-items: center;
+  gap: var(--hk-spacing-md);
+}
+
+.hk-mypage-avatar {
+  flex-shrink: 0;
+}
+
+.hk-mypage-welcome-text {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--hk-text-primary);
+  margin: 0;
+}
+
+.hk-mypage-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--hk-spacing-lg);
+  margin-bottom: var(--hk-spacing-lg);
+}
+
+.hk-mypage-cards-grid > .hk-mypage-card:nth-child(4),
+.hk-mypage-cards-grid > .hk-mypage-card:nth-child(5) {
+  grid-column: span 1;
+}
+
+.hk-mypage-card {
+  background: var(--hk-bg-primary);
+  border-radius: var(--hk-radius-lg);
+  padding: var(--hk-spacing-lg);
+  box-shadow: var(--hk-shadow-md);
+  transition: var(--hk-transition);
+}
+
+.hk-mypage-card:hover {
+  box-shadow: var(--hk-shadow-lg);
+  transform: translateY(-2px);
+}
+
+.hk-mypage-card-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--hk-text-primary);
+  margin-bottom: var(--hk-spacing-md);
+  padding-bottom: var(--hk-spacing-sm);
+  border-bottom: 2px solid var(--hk-border-primary);
+}
+
+.hk-mypage-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hk-spacing-sm);
+}
+
+.hk-mypage-card-link {
+  color: var(--hk-text-primary);
+  text-decoration: none;
+  padding: var(--hk-spacing-sm) 0;
+  font-size: 1rem;
+  transition: var(--hk-transition);
+  border-bottom: 1px solid transparent;
+}
+
+.hk-mypage-card-link:hover {
+  color: var(--hk-primary);
+  border-bottom-color: var(--hk-primary);
+  padding-left: var(--hk-spacing-xs);
+}
+
+.hk-mypage-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--hk-spacing-sm) 0;
+  margin-top: var(--hk-spacing-xs);
+}
+
+.hk-mypage-setting-label {
+  font-size: 1rem;
+  color: var(--hk-text-primary);
+  font-weight: 500;
+}
+
+.hk-mypage-language-select {
+  padding: 6px 12px;
+  border: 1px solid var(--hk-border-primary);
+  border-radius: var(--hk-radius-sm);
+  background: var(--hk-bg-primary);
+  color: var(--hk-text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--hk-transition);
+}
+
+.hk-mypage-language-select:hover {
+  border-color: var(--hk-primary);
+}
+
+.hk-mypage-language-select:focus {
+  outline: none;
+  border-color: var(--hk-primary);
+  box-shadow: 0 0 0 3px var(--hk-primary-light);
+}
+
+.hk-mypage-toggle {
+  width: 50px;
+  height: 26px;
+  background: #ccc;
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: var(--hk-transition);
+}
+
+.hk-mypage-toggle.hk-mypage-toggle-active {
+  background: var(--hk-primary);
+}
+
+.hk-mypage-toggle-slider {
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: var(--hk-transition);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hk-mypage-toggle.hk-mypage-toggle-active .hk-mypage-toggle-slider {
+  transform: translateX(24px);
+}
+
+@media (max-width: 1024px) {
+  .hk-mypage-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hk-mypage-container {
+    padding: var(--hk-spacing-lg) var(--hk-spacing-sm);
+  }
+
+  .hk-mypage-welcome {
+    padding: var(--hk-spacing-lg);
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .hk-mypage-welcome-text {
+    font-size: 1.5rem;
+  }
+
+  .hk-mypage-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hk-mypage-card-title {
+    font-size: 1.2rem;
+  }
+}
+
+

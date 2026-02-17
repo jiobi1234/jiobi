@@ -1,0 +1,81 @@
+/*sidebar*/
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100; /* 네비게이션 바가 콘텐츠 위에 표시되도록 함 */
+    padding: 5px 0 0; /* 상단 공간 확보 */
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0; /* 뷰포트 상단에 고정 */
+    height: calc(100vh - 48px);
+    padding-top: .5rem;
+    overflow-x: hidden;
+    overflow-y: auto; /* 필요시 내부 스크롤 활성화 */
+}
+
+.nav-link {
+    color: #333;
+}
+
+.nav-link.active {
+    color: #007bff;
+}
+body {
+    background-color: #f0f2f5;
+    color: #333;
+    font-family: 'Noto Sans', sans-serif;
+}
+
+.container {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 50px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+    font-size: 20px;
+    padding: 10px 24px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+#myIp {
+    font-size: 18px;
+    font-weight: bold;
+    color: #007bff;
+    margin-top: 15px;
+}
+
+#map {
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+#map {
+    width: 100vw;
+    height: 100vh;
+    /* 필요하다면, 페이지 상단에 다른 요소들이 있을 경우 지도의 높이를 조정하세요. 예: height: calc(100vh - 100px); */
+}

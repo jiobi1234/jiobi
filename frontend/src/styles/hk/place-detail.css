@@ -1,0 +1,246 @@
+.hk-place-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--hk-spacing-lg) var(--hk-spacing-md);
+}
+
+.hk-place-detail {
+  background: var(--hk-bg-primary);
+  border-radius: var(--hk-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--hk-shadow-lg);
+  transition: var(--hk-transition);
+}
+
+.hk-place-detail:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.hk-place-image {
+  width: 100%;
+  height: 450px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.hk-place-image::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
+  pointer-events: none;
+}
+
+.hk-place-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.hk-place-detail:hover .hk-place-image img {
+  transform: scale(1.05);
+}
+
+.hk-place-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.hk-place-image-icon {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.hk-place-image-text {
+  font-size: 1.2rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.hk-place-info {
+  padding: var(--hk-spacing-xl);
+}
+
+.hk-place-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--hk-text-primary);
+  margin-bottom: var(--hk-spacing-lg);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.hk-place-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hk-spacing-md);
+  margin-bottom: var(--hk-spacing-xl);
+}
+
+.hk-place-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hk-spacing-md);
+  padding: var(--hk-spacing-md);
+  background: var(--hk-bg-secondary);
+  border-radius: var(--hk-radius-md);
+  transition: var(--hk-transition);
+}
+
+.hk-place-info-item:hover {
+  background: var(--hk-bg-tertiary);
+  transform: translateX(4px);
+}
+
+.hk-place-info-icon,
+.hk-place-address-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hk-place-info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hk-place-info-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--hk-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hk-place-info-value {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--hk-text-primary);
+  line-height: 1.5;
+}
+
+.hk-place-address-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hk-place-address-main {
+  font-weight: 500;
+  color: var(--hk-text-primary);
+}
+
+.hk-place-address-sub {
+  font-size: 0.95rem;
+  color: var(--hk-text-secondary);
+  font-weight: 400;
+}
+
+.hk-place-info-link {
+  color: var(--hk-primary);
+  text-decoration: none;
+  word-break: break-all;
+  transition: var(--hk-transition);
+}
+
+.hk-place-info-link:hover {
+  text-decoration: underline;
+  color: var(--hk-primary-hover);
+}
+
+.hk-place-description {
+  margin-top: var(--hk-spacing-xl);
+  padding-top: var(--hk-spacing-xl);
+  border-top: 2px solid var(--hk-border-primary);
+}
+
+.hk-place-description h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--hk-text-primary);
+  margin-bottom: var(--hk-spacing-md);
+  letter-spacing: -0.01em;
+}
+
+.hk-place-description p {
+  color: var(--hk-text-secondary);
+  line-height: 1.9;
+  font-size: 1.05rem;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .hk-place-container {
+    padding: var(--hk-spacing-md) var(--hk-spacing-sm);
+  }
+
+  .hk-place-image {
+    height: 300px;
+  }
+
+  .hk-place-info {
+    padding: var(--hk-spacing-lg);
+  }
+
+  .hk-place-title {
+    font-size: 1.75rem;
+    margin-bottom: var(--hk-spacing-md);
+  }
+
+  .hk-place-info-section {
+    gap: var(--hk-spacing-sm);
+    margin-bottom: var(--hk-spacing-lg);
+  }
+
+  .hk-place-info-item {
+    padding: var(--hk-spacing-sm);
+  }
+
+  .hk-place-info-value {
+    font-size: 1rem;
+  }
+
+  .hk-place-description {
+    margin-top: var(--hk-spacing-lg);
+    padding-top: var(--hk-spacing-lg);
+  }
+
+  .hk-place-description h2 {
+    font-size: 1.25rem;
+  }
+
+  .hk-place-description p {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hk-place-title {
+    font-size: 1.5rem;
+  }
+
+  .hk-place-info-icon,
+  .hk-place-address-icon {
+    font-size: 1.25rem;
+  }
+}
+
+

@@ -1,0 +1,57 @@
+.stt-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+.result-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+.result-list {
+    list-style: none;
+    padding: 0;
+}
+.result-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.result-list li:last-child {
+    border-bottom: none;
+}
+.timestamp {
+    font-weight: bold;
+    color: #6c757d;
+    margin-right: 10px;
+}
+.stt-info {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+.btn-primary {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+}
+main {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0 15px;
+}
+#progress-container {
+    display: none;
+    margin-top: 20px;
+}
+.progress {
+    height: 25px;
+}
+.license-notice {
+    font-size: 0.85em; /* 글씨 크기 작게 */
+    color: #6c757d; /* 회색 톤으로 */
+    margin-top: 5px;
+}
