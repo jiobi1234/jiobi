@@ -10,6 +10,10 @@ export interface KakaoMapMarkerData {
   description?: string;
   onClick?: () => void;
   day?: number;
+  /** 경유지 순서 표시용 (1, 2, 3...) */
+  number?: number;
+  /** 내 위치 마커 (파란 점으로 표시) */
+  isMyLocation?: boolean;
 }
 
 export interface KakaoMapProps {
@@ -21,6 +25,8 @@ export interface KakaoMapProps {
   markers?: KakaoMapMarkerData[];
   /** 경로(폴리라인) 좌표 목록 - 길찾기 시 사용 */
   path?: { lat: number; lng: number }[];
+  /** true면 마커+경로 전체가 보이도록 지도 영역 자동 조정 */
+  fitToView?: boolean;
   /** 컨테이너 div에 줄 className */
   className?: string;
   /** 컨테이너 div에 줄 style (height 등) */
@@ -41,6 +47,7 @@ export default function KakaoMap({
   level = 3,
   markers = [],
   path,
+  fitToView = false,
   className,
   style,
   containerId: containerIdProp,
@@ -48,7 +55,7 @@ export default function KakaoMap({
   const generatedId = useId();
   const containerId = containerIdProp ?? `kakao-map-${generatedId.replace(/:/g, '')}`;
 
-  const { map, isLoaded, addMarker, clearMarkers, setPolyline } = useKakaoMap({
+  const { map, isLoaded, addMarker, clearMarkers, setPolyline, setFitBounds } = useKakaoMap({
     center,
     level,
     containerId,
@@ -68,6 +75,8 @@ export default function KakaoMap({
         description: m.description,
         onClick: m.onClick,
         day: m.day,
+        number: m.number,
+        isMyLocation: m.isMyLocation,
       });
     });
   }, [isLoaded, markers, addMarker, clearMarkers]);
@@ -81,6 +90,23 @@ export default function KakaoMap({
     }
     setPolyline(path);
   }, [isLoaded, path, setPolyline]);
+
+  // fitToView: 마커+경로 전체가 보이도록 지도 영역 조정 (내 위치 제외 - 이동 시 지도가 흔들리지 않도록)
+  useEffect(() => {
+    if (!isLoaded || !fitToView) return;
+    const points: { lat: number; lng: number }[] = [];
+    markers.filter((m) => !m.isMyLocation).forEach((m) => points.push({ lat: m.lat, lng: m.lng }));
+    if (path?.length) path.forEach((p) => points.push(p));
+    if (points.length === 0) return;
+    // 1개일 때는 작은 패딩으로 bounds 생성 (단일 포인트도 확대 표시)
+    const pts = points.length === 1
+      ? [
+          { lat: points[0].lat - 0.005, lng: points[0].lng - 0.005 },
+          { lat: points[0].lat + 0.005, lng: points[0].lng + 0.005 },
+        ]
+      : points;
+    setFitBounds(pts);
+  }, [isLoaded, fitToView, markers, path, setFitBounds]);
 
   // 컨테이너 크기 확정 후 지도 relayout (채팅창 내 지도가 전체 너비로 그려지도록)
   useEffect(() => {

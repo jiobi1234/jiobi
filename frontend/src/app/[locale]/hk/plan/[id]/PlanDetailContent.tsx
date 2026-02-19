@@ -736,6 +736,13 @@ export default function PlanDetailContent() {
         <div className="plan-map-section">
           <div className="plan-map-header">
             <h2 className="plan-map-title">지도에서 보기</h2>
+            <button
+              type="button"
+              className="plan-route-view-button"
+              onClick={() => router.push(`/${locale}/hk/plan/${planId}/route`)}
+            >
+              경로 보기
+            </button>
             <div className="plan-route-day-buttons">
               {Array.from({ length: dayCount }, (_, idx) => idx + 1).map((day) => (
                 <button
@@ -755,6 +762,7 @@ export default function PlanDetailContent() {
             level={7}
             markers={planMapMarkers}
             path={routePath || undefined}
+            fitToView
             className="plan-map"
             style={{ height: 'min(400px, 50vh)' }}
           />
@@ -1243,6 +1251,23 @@ export default function PlanDetailContent() {
           font-weight: 600;
           color: #2c3e50;
           margin-bottom: 0;
+        }
+
+        .plan-route-view-button {
+          padding: 8px 16px;
+          border-radius: 20px;
+          border: 2px solid #1890ff;
+          background: #fff;
+          color: #1890ff;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s, color 0.2s;
+        }
+
+        .plan-route-view-button:hover {
+          background: #1890ff;
+          color: #fff;
         }
 
         .plan-route-day-buttons {

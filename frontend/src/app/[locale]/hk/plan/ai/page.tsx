@@ -45,7 +45,8 @@ export default function AIPage() {
     const [routeSummary, setRouteSummary] = useState<{ distanceMeters: number; durationSeconds: number } | null>(null);
     const [routeLoadingDay, setRouteLoadingDay] = useState<number | null>(null);
     const [kakaoRouteUrl, setKakaoRouteUrl] = useState<string | null>(null);
-    const [showMarkerInfo, setShowMarkerInfo] = useState<boolean>(true);
+    // 백엔드에서 좌표를 못 찾은 장소 → 프론트에서 검색으로 보완
+    const [enrichedCoords, setEnrichedCoords] = useState<Record<string, { lat: number; lng: number }>>({});
 
     // Temporary state to store collected data
     const [planData, setPlanData] = useState({
@@ -88,6 +89,66 @@ export default function AIPage() {
             loadExistingPlan();
         }
     }, [editMode, planId, showToast]);
+
+    // 좌표 없는 장소 → 장소명+지역으로 검색하여 좌표 보완
+    useEffect(() => {
+        if (!finalPlan?.days || !planData.region) return;
+        const toFetch: { key: string; place: string }[] = [];
+        finalPlan.days.forEach((day: any) => {
+            (day.schedule || []).forEach((item: any, idx: number) => {
+                const latRaw = item.latitude ?? item.lat ?? item.mapy;
+                const lngRaw = item.longitude ?? item.lng ?? item.mapx;
+                if (latRaw == null || lngRaw == null) {
+                    const key = `${day.day}-${idx}-${item.place}`;
+                    if (!enrichedCoords[key]) toFetch.push({ key, place: item.place });
+                }
+            });
+        });
+        if (toFetch.length === 0) return;
+        let cancelled = false;
+        const run = async () => {
+            for (const { key, place } of toFetch) {
+                if (cancelled) return;
+                try {
+                    const region = planData.region || '';
+                    const keyword = region ? `${region} ${place}` : place;
+                    const res = await apiClient.hk.searchPlaces(keyword, 1, 1, region || undefined);
+                    const places = res?.places ?? [];
+                    if (places.length > 0 && places[0].latitude != null && places[0].longitude != null) {
+                        setEnrichedCoords(prev => ({
+                            ...prev,
+                            [key]: { lat: places[0].latitude!, lng: places[0].longitude! },
+                        }));
+                    }
+                } catch {
+                    // 무시
+                }
+            }
+        };
+        run();
+        return () => { cancelled = true; };
+    }, [finalPlan, planData.region]);
+
+    // 로그인 후 복귀: 임시 저장된 계획 복원 → 화면에 계획 + 저장 버튼 표시
+    useEffect(() => {
+        const shouldRestore = searchParams?.get('restoreDraft') === '1' && !editMode;
+        if (!shouldRestore) return;
+        try {
+            const raw = sessionStorage.getItem('hk_draft_plan');
+            if (!raw) return;
+            const draft = JSON.parse(raw) as { planData?: unknown; finalPlan?: unknown };
+            if (draft.finalPlan) {
+                setFinalPlan(draft.finalPlan);
+                setMessages(prev => {
+                    if (prev.some(m => m.plan)) return prev;
+                    return [...prev, { role: 'assistant', plan: draft.finalPlan }];
+                });
+                showToast('success', '로그인되었습니다. 아래 "저장하기" 버튼으로 계획을 저장해 주세요.');
+            }
+        } catch (e) {
+            console.error('임시 계획 복원 실패:', e);
+        }
+    }, [searchParams, editMode, showToast]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -270,9 +331,19 @@ export default function AIPage() {
         end_date: string;
         items: PlanItem[];
     }) => {
-        // 로그인 여부 확인
+        // 비로그인: 임시 저장 후 로그인으로 보내고, 로그인 후 "이 계획 저장할까요?" 복원
         if (!apiClient.auth.isAuthenticated()) {
-            showToast('info', '로그인 후 계획을 저장할 수 있습니다.');
+            try {
+                const draft = { planData, finalPlan };
+                sessionStorage.setItem('hk_draft_plan', JSON.stringify(draft));
+            } catch (e) {
+                console.error('임시 저장 실패:', e);
+                showToast('error', '임시 저장에 실패했습니다.');
+                return;
+            }
+            showToast('info', '저장하려면 로그인이 필요합니다. 로그인 후 계획을 저장할 수 있어요.');
+            const returnPath = `/${locale}/hk/plan/ai?restoreDraft=1`;
+            router.push(`/${locale}/hk/login?returnUrl=${encodeURIComponent(returnPath)}`);
             return;
         }
 
@@ -281,8 +352,8 @@ export default function AIPage() {
         setSaving(true);
         try {
             await apiClient.hk.createPlan(planData);
+            sessionStorage.removeItem('hk_draft_plan');
             showToast('success', '여행 계획이 저장되었습니다!');
-            // 저장 후 내 여행 페이지로 이동
             router.push(`/${locale}/hk/mytravel`);
         } catch (error) {
             console.error('계획 저장 중 오류:', error);
@@ -399,7 +470,7 @@ export default function AIPage() {
         }
     };
 
-    // AI 계획을 지도용 마커로 변환
+    // AI 계획을 지도용 마커로 변환 (백엔드 좌표 + 프론트 검색 보완 좌표)
     const aiMapMarkers = useMemo(() => {
         if (!finalPlan || !finalPlan.days) return [];
         const markers: {
@@ -414,28 +485,26 @@ export default function AIPage() {
         try {
             finalPlan.days.forEach((day: any) => {
                 (day.schedule || []).forEach((item: any, idx: number) => {
-                    // 백엔드 ScheduleItem은 mapy(위도), mapx(경도)로 옴. latitude/longitude도 허용
+                    let lat: number;
+                    let lng: number;
                     const latRaw = item.latitude ?? item.lat ?? item.mapy;
                     const lngRaw = item.longitude ?? item.lng ?? item.mapx;
-                    if (latRaw == null || lngRaw == null) return;
-                    const lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
-                    const lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
+                    if (latRaw != null && lngRaw != null) {
+                        lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
+                        lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
+                    } else {
+                        const key = `${day.day}-${idx}-${item.place}`;
+                        const enriched = enrichedCoords[key];
+                        if (!enriched) return;
+                        lat = enriched.lat;
+                        lng = enriched.lng;
+                    }
                     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-                    const order = idx + 1;
-                    const title = showMarkerInfo ? `Day ${day.day} · ${order}. ${item.place}` : undefined;
-                    const description = showMarkerInfo
-                        ? item.time
-                            ? `${item.time}${item.stay_duration ? ` · ${item.stay_duration}` : ''}`
-                            : item.stay_duration || ''
-                        : undefined;
 
                     markers.push({
                         lat,
                         lng,
                         day: day.day,
-                        title,
-                        description,
                         onClick: () =>
                             setSelectedSpot({
                                 day: day.day,
@@ -449,7 +518,7 @@ export default function AIPage() {
         }
 
         return markers;
-    }, [finalPlan, showMarkerInfo]);
+    }, [finalPlan, enrichedCoords]);
 
     // Day별 길찾기 경로 요청
     const handleShowRouteForDay = async (dayNumber: number) => {
@@ -467,12 +536,21 @@ export default function AIPage() {
             setKakaoRouteUrl(null);
 
             const points = day.schedule
-                .map((item: any) => {
+                .map((item: any, idx: number) => {
+                    let lat: number;
+                    let lng: number;
                     const latRaw = item.latitude ?? item.lat ?? item.mapy;
                     const lngRaw = item.longitude ?? item.lng ?? item.mapx;
-                    if (latRaw == null || lngRaw == null) return null;
-                    const lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
-                    const lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
+                    if (latRaw != null && lngRaw != null) {
+                        lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
+                        lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
+                    } else {
+                        const key = `${day.day}-${idx}-${item.place}`;
+                        const enriched = enrichedCoords[key];
+                        if (!enriched) return null;
+                        lat = enriched.lat;
+                        lng = enriched.lng;
+                    }
                     if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
                     return {
                         place_id: item.place_id,
@@ -569,13 +647,6 @@ export default function AIPage() {
                                         <div className="ai-map-title">
                                             지도에서 보기
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="ai-marker-toggle-button"
-                                            onClick={() => setShowMarkerInfo((prev) => !prev)}
-                                        >
-                                            {showMarkerInfo ? '마커 설명 끄기' : '마커 설명 켜기'}
-                                        </button>
                                     </div>
                                     {finalPlan.days && (
                                         <div className="ai-route-day-buttons">
@@ -599,6 +670,7 @@ export default function AIPage() {
                                         level={7}
                                         markers={aiMapMarkers}
                                         path={routePath || undefined}
+                                        fitToView
                                         className="ai-map"
                                         style={{ height: 'min(400px, 50vh)', width: '100%' }}
                                     />

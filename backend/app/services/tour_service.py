@@ -1,9 +1,16 @@
+import random
 from typing import Dict, Any, Optional, List
 from app.api.tour_api import TourAPI
 from app.api.kakao_api import KakaoAPI
 from app.core.mongodb import get_database
 from app.core.config import settings
 from app.models.place_models import PlaceNormalizer
+
+# 메인 화면 카테고리별 장소 조회 시 요청마다 다른 지역 사용 (다양한 결과)
+# TourAPI: 공공데이터 관광 API 지역코드 (1=서울, 6=부산, 31=경기, 32=강원, 39=제주 등)
+REFRESH_REGIONS_TOUR = ["1", "6", "31", "32", "39"]
+# KakaoAPI: 지역명 (키워드 검색에 함께 사용)
+REFRESH_REGIONS_KAKAO = ["서울", "부산", "제주", "경기", "강원"]
 
 class TourService:
     """여행 서비스 로직"""
@@ -52,7 +59,9 @@ class TourService:
                 "count": 0
             }
         
-        logger.info(f"[TourAPI] Fetching places for section_type={section_type}, contentTypeId={contentTypeId}, limit={limit}")
+        # 요청마다 다른 지역 사용 (같은 카테고리도 다양한 장소 노출)
+        area_code = random.choice(REFRESH_REGIONS_TOUR)
+        logger.info(f"[TourAPI] Fetching places for section_type={section_type}, contentTypeId={contentTypeId}, limit={limit}, areaCode={area_code}")
         
         # TourAPI를 통해 카테고리별 장소 조회
         result = await asyncio.to_thread(
@@ -60,7 +69,7 @@ class TourService:
             keyword="",
             page=1,
             limit=limit,
-            region=None,
+            region=area_code,
             district=None,
             contentTypeId=contentTypeId
         )
@@ -154,7 +163,9 @@ class TourService:
                 "count": 0
             }
         
-        logger.info(f"[KakaoAPI] Fetching places for section_type={section_type}, keyword={keyword}, limit={limit}")
+        # 요청마다 다른 지역 사용 (같은 카테고리도 다양한 장소 노출)
+        region = random.choice(REFRESH_REGIONS_KAKAO)
+        logger.info(f"[KakaoAPI] Fetching places for section_type={section_type}, keyword={keyword}, limit={limit}, region={region}")
         
         # KakaoAPI를 통해 카테고리별 장소 조회
         result = await asyncio.to_thread(
@@ -162,7 +173,7 @@ class TourService:
             keyword=keyword,
             page=1,
             limit=limit,
-            region="서울",  # 기본값: 서울
+            region=region,
             district=None
         )
         
@@ -302,21 +313,25 @@ class TourService:
             "total": total
         }
 
-    async def search_keyword_for_logistics(self, keyword: str) -> Optional[Dict[str, Any]]:
+    async def search_keyword_for_logistics(self, keyword: str, region: str = None) -> Optional[Dict[str, Any]]:
         """
         LogisticsService용 단순 검색 메서드.
         키워드로 검색하여 가장 정확도 높은 1개의 장소(좌표 포함)를 반환.
+        region이 있으면 해당 지역 기준으로 검색 (예: 강릉 중앙시장).
         TourAPI 우선, 결과 없으면 Kakao 로컬 API로 fallback.
         """
         import asyncio
         import logging
         logger = logging.getLogger(__name__)
 
+        # 지역 포함 검색어 (region 있으면 "지역 장소명" 형태로 검색)
+        search_keyword = f"{region} {keyword}".strip() if region else keyword
+
         # 1) TourAPI 우선 시도
         try:
             result = await asyncio.to_thread(
                 self.tour_api.search_places,
-                keyword=keyword,
+                keyword=search_keyword,
                 page=1,
                 limit=1,
                 region=None,
@@ -336,7 +351,7 @@ class TourService:
                     place = PlaceNormalizer.from_tour_api(raw_places[0])
                     return place.to_dict()
         except Exception as e:
-            logger.warning(f"Logistics search (TourAPI) failed for {keyword}: {e}")
+            logger.warning(f"Logistics search (TourAPI) failed for {search_keyword}: {e}")
 
         # 2) Fallback: Kakao 로컬 API
         try:
@@ -344,7 +359,7 @@ class TourService:
                 return None
             kakao_result = await asyncio.to_thread(
                 self.kakao_api.search_places,
-                keyword=keyword,
+                keyword=search_keyword,
                 page=1,
                 limit=1,
             )
@@ -352,7 +367,7 @@ class TourService:
             if docs:
                 place = PlaceNormalizer.from_kakao_api(docs[0])
                 d = place.to_dict()
-                logger.info(f"Logistics: Kakao fallback used for {keyword}")
+                logger.info(f"Logistics: Kakao fallback used for {search_keyword}")
                 return d
         except Exception as e:
             logger.warning(f"Logistics search (Kakao fallback) failed for {keyword}: {e}")

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import HKLayout from '../../../../components/hk/HKLayout';
@@ -21,6 +21,7 @@ import '../../../../styles/hk/login.css';
 function LoginPageContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const locale = getStringParam(params, 'locale') || 'ko';
   const t = useTranslations('hk.auth.login');
   const { showToast } = useToast();
@@ -28,6 +29,10 @@ function LoginPageContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 로그인 후 돌아갈 경로 (예: 계획 저장 유도 시 /plan/ai?restoreDraft=1)
+  const returnUrl = searchParams?.get('returnUrl') ?? null;
+  const safeReturnUrl = returnUrl && returnUrl.startsWith(`/${locale}/hk`) ? returnUrl : null;
 
   const {
     errors,
@@ -64,7 +69,7 @@ function LoginPageContent() {
       if (response.access_token) {
         showToast('success', t('success'));
         setTimeout(() => {
-          router.push(`/${locale}/hk`);
+          router.push(safeReturnUrl ?? `/${locale}/hk`);
         }, 1000);
       } else {
         showToast('error', t('error'));

@@ -41,6 +41,8 @@
     "searchPlaceholder": "장소, 지역을 검색하세요",
     "heroTitle": "나만의 한국 여행,<br />JIOBI에서 시작하세요!",
     "createPlan": "여행 계획 만들기",
+    "createPlanAi": "AI로 계획 만들기",
+    "createPlanManual": "수동 계획 만들기",
     "hotTravelTitle": "지금 가장 핫한 한국 여행은?",
     "themesTitle": "JIOBI가 추천하는 맞춤 여행 테마",
     "noData": "해당 카테고리의 정보를 찾을 수 없습니다.",

@@ -48,7 +48,7 @@ frontend/src/
 ├── app/[locale]/hk/
 │   ├── page.tsx                    # 메인 페이지 (이 문서의 주제)
 │   ├── plan/                       # 여행 계획 관련
-│   │   ├── select/page.tsx        # 계획 생성 방식 선택
+│   │   ├── select/page.tsx        # (선택) 계획 생성 방식 선택 (메인에서 바로 AI/수동 이동 가능)
 │   │   ├── ai/page.tsx            # AI 자동 계획 생성
 │   │   ├── create/page.tsx        # 수동 계획 생성
 │   │   └── [id]/                  # 계획 상세/수정
@@ -58,7 +58,7 @@ frontend/src/
 │   └── ...
 │
 ├── components/hk/
-│   ├── HeroSection.tsx            # 상단 히어로 섹션 (여행계획만들기 버튼)
+│   ├── HeroSection.tsx            # 상단 히어로 섹션 (AI로 계획 만들기 / 수동 계획 만들기 버튼)
 │   ├── ThemesSection.tsx          # 테마 섹션
 │   ├── HotTravelSection.tsx       # 인기 여행지 섹션
 │   ├── PlaceCard.tsx              # 장소 카드 컴포넌트
@@ -103,7 +103,8 @@ HKLayout (레이아웃)
   └── HKMainPage (메인 컨텐츠)
       └── HKMainContent
           ├── HeroSection (히어로 섹션)
-          │   └── "여행계획만들기" 버튼
+          │   ├── "AI로 계획 만들기" 버튼 → /plan/ai
+          │   └── "수동 계획 만들기" 버튼 → /plan/create
           │
           ├── ThemesSection (테마 섹션)
           │   └── ThemeCard × N (테마 카드들)
@@ -170,20 +171,18 @@ HKProvider
 [HotTravelSection] PlaceCard 리렌더링
 ```
 
-### 3. "여행계획만들기" 버튼 클릭 시
+### 3. 메인 히어로에서 계획 만들기 버튼 클릭 시
 
 ```
-[사용자] "여행계획만들기" 버튼 클릭
+[사용자] "AI로 계획 만들기" 또는 "수동 계획 만들기" 버튼 클릭
   ↓
-[HeroSection] handlePlanClick() 실행
+[HeroSection] handlePlanClick('ai' | 'manual') 실행
   ↓
 [로그인 체크] apiClient.auth.isAuthenticated()
   ├─ 로그인 안 됨 → /ko/hk/login 페이지로 이동
-  └─ 로그인 됨 → /ko/hk/plan/select/ 페이지로 이동
-      ↓
-      [계획 선택 페이지]
-      ├─ AI 자동 생성 클릭 → /ko/hk/plan/ai
-      └─ 수동 생성 클릭 → /ko/hk/plan/create
+  └─ 로그인 됨
+      ├─ AI 버튼 클릭 → /ko/hk/plan/ai (window.location.href)
+      └─ 수동 버튼 클릭 → /ko/hk/plan/create (router.push)
 ```
 
 ### 4. 장소 카드 클릭 시
@@ -314,20 +313,20 @@ HKContext는 여러 하위 Context를 통합하여 제공합니다:
 
 **기능**:
 - 메인 타이틀 표시
-- "여행계획만들기" 버튼 제공
+- "AI로 계획 만들기", "수동 계획 만들기" 두 버튼 제공 (메인에서 바로 선택)
 
 **동작 흐름**:
 ```
-[버튼 클릭]
+[버튼 클릭] (AI 또는 수동)
   ↓
-handlePlanClick() 실행
+handlePlanClick('ai' | 'manual') 실행
   ↓
 로그인 체크 (apiClient.auth.isAuthenticated())
   ├─ 미로그인 → 로그인 페이지로 이동
-  └─ 로그인됨 → 계획 선택 페이지로 이동
+  └─ 로그인됨 → AI면 /plan/ai, 수동이면 /plan/create 로 바로 이동
 ```
 
-**현재 상태**: 로그인 체크 후 로그인 페이지로 이동 (변경 예정: 광고 페이지로 이동)
+**현재 상태**: 로그인 체크 후 AI/수동 페이지로 직접 이동 (계획 선택 페이지 생략)
 
 ---
 
@@ -493,7 +492,7 @@ handleWishlistClick() 실행
 
 **HeroSection**:
 - 메인 페이지 상단 히어로 섹션
-- "여행계획만들기" 버튼 포함
+- "AI로 계획 만들기", "수동 계획 만들기" 버튼 포함 (선택 페이지 없이 바로 이동)
 
 **ThemesSection**:
 - 테마 목록을 가로 스크롤로 표시
@@ -641,9 +640,9 @@ handleWishlistClick() 실행
 ### 프로세스 3: 여행 계획 만들기
 
 ```
-1. 사용자가 "여행계획만들기" 버튼 클릭
+1. 사용자가 메인에서 "AI로 계획 만들기" 또는 "수동 계획 만들기" 버튼 클릭
    ↓
-2. HeroSection의 handlePlanClick() 실행
+2. HeroSection의 handlePlanClick('ai' | 'manual') 실행
    ↓
 3. 로그인 체크: apiClient.auth.isAuthenticated()
    ├─ false (미로그인)
@@ -651,14 +650,8 @@ handleWishlistClick() 실행
    │   └─ router.push('/ko/hk/login')
    │
    └─ true (로그인됨)
-       └─ router.push('/ko/hk/plan/select/')
-           ↓
-           [계획 선택 페이지]
-           ├─ "AI 자동 계획 생성" 클릭
-           │   └─ window.location.href = '/ko/hk/plan/ai'
-           │
-           └─ "수동 맞춤 계획 생성" 클릭
-               └─ router.push('/ko/hk/plan/create')
+       ├─ AI 버튼 클릭 → window.location.href = '/ko/hk/plan/ai'
+       └─ 수동 버튼 클릭 → router.push('/ko/hk/plan/create')
 ```
 
 ### 프로세스 4: 장소 상세 페이지 이동
@@ -784,8 +777,8 @@ interface WishlistItem {
 ## 주요 개선 사항 (예정)
 
 ### 1. 로그인 체크 제거
-- **현재**: HeroSection에서 로그인 체크 후 로그인 페이지로 이동
-- **변경 예정**: 로그인 체크 제거, 바로 계획 선택 페이지로 이동
+- **현재**: HeroSection에서 로그인 체크 후 로그인 페이지 또는 AI/수동 계획 페이지로 이동
+- **변경 예정**: 로그인 체크 제거, 메인에서 바로 AI/수동 계획 페이지로 이동
 
 ### 2. 광고 페이지 추가
 - **추가 예정**: AI 자동 계획 생성 시 광고 페이지 표시

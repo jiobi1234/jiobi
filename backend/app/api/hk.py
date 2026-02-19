@@ -372,58 +372,76 @@ async def get_route_for_day(request: RouteRequest):
     if not request.points or len(request.points) < 2:
         raise HTTPException(status_code=400, detail="최소 2개 이상의 장소가 필요합니다.")
 
-    # Kakao 모빌리티 Directions는 (lng, lat) 순서의 좌표를 사용
-    try:
-        kakao = KakaoAPI()
+    # Kakao 모빌리티: 경유지 최대 5개 (총 7개 장소). 8개 이상이면 7개씩 끊어서 여러 번 호출 후 이어붙임
+    SEGMENT_SIZE = 7
 
-        # origin, destination, waypoints 구성
-        origin_point = request.points[0]
-        destination_point = request.points[-1]
-        waypoint_points = request.points[1:-1] if len(request.points) > 2 else []
-
-        origin = (origin_point.longitude, origin_point.latitude)
-        destination = (destination_point.longitude, destination_point.latitude)
-        waypoints = [(p.longitude, p.latitude) for p in waypoint_points]
-
-        directions = kakao.get_directions(origin=origin, destination=destination, waypoints=waypoints or None)
-
-        # Kakao 응답에서 첫 번째 경로/섹션 기준으로 요약 및 좌표 추출
+    def _extract_path_and_summary(directions: dict, origin_point, dest_point) -> tuple[list[RouteVertex], int, int]:
         routes = directions.get("routes") or []
         if not routes:
             raise HTTPException(status_code=502, detail="Kakao 길찾기 결과를 가져오지 못했습니다.")
-
         first_route = routes[0]
         summary_info = first_route.get("summary") or {}
         distance = int(summary_info.get("distance", 0))
         duration = int(summary_info.get("duration", 0))
-
         path_vertices: list[RouteVertex] = []
-
-        # sections -> roads -> vertexes (x1, y1, x2, y2, ...) 형태를 lat/lng 쌍으로 변환
         sections = first_route.get("sections") or []
         for section in sections:
-            roads = section.get("roads") or []
-            for road in roads:
+            for road in section.get("roads") or []:
                 vertexes = road.get("vertexes") or []
-                # vertexes: [x1, y1, x2, y2, ...]
-                for i in range(0, len(vertexes) - 1, 2):
-                    x = float(vertexes[i])
-                    y = float(vertexes[i + 1])
+                for j in range(0, len(vertexes) - 1, 2):
+                    x, y = float(vertexes[j]), float(vertexes[j + 1])
                     path_vertices.append(RouteVertex(latitude=y, longitude=x))
-
-        # 폴리라인 좌표가 비어 있으면 최소한 origin/destination만 반환
         if not path_vertices:
             path_vertices = [
                 RouteVertex(latitude=origin_point.latitude, longitude=origin_point.longitude),
-                RouteVertex(latitude=destination_point.latitude, longitude=destination_point.longitude),
+                RouteVertex(latitude=dest_point.latitude, longitude=dest_point.longitude),
+            ]
+        return path_vertices, distance, duration
+
+    try:
+        kakao = KakaoAPI()
+        total_distance = 0
+        total_duration = 0
+        all_path: list[RouteVertex] = []
+        i = 0
+
+        while i < len(request.points):
+            end = min(i + SEGMENT_SIZE, len(request.points))
+            segment = request.points[i:end]
+            if len(segment) < 2:
+                break
+
+            origin_point = segment[0]
+            dest_point = segment[-1]
+            waypoint_points = segment[1:-1]
+            if len(waypoint_points) > 5:
+                waypoint_points = waypoint_points[:5]
+
+            origin = (origin_point.longitude, origin_point.latitude)
+            destination = (dest_point.longitude, dest_point.latitude)
+            waypoints = [(p.longitude, p.latitude) for p in waypoint_points] or None
+
+            directions = kakao.get_directions(origin=origin, destination=destination, waypoints=waypoints)
+            path_vertices, distance, duration = _extract_path_and_summary(directions, origin_point, dest_point)
+
+            total_distance += distance
+            total_duration += duration
+            if i == 0:
+                all_path.extend(path_vertices)
+            else:
+                all_path.extend(path_vertices[1:])  # 경계점 중복 제거
+
+            i = end - 1
+
+        if not all_path:
+            all_path = [
+                RouteVertex(latitude=request.points[0].latitude, longitude=request.points[0].longitude),
+                RouteVertex(latitude=request.points[-1].latitude, longitude=request.points[-1].longitude),
             ]
 
         return RouteResponse(
-            summary=RouteSummary(
-                distance_meters=distance,
-                duration_seconds=duration,
-            ),
-            path=path_vertices,
+            summary=RouteSummary(distance_meters=total_distance, duration_seconds=total_duration),
+            path=all_path,
         )
     except HTTPException:
         raise
@@ -431,5 +449,12 @@ async def get_route_for_day(request: RouteRequest):
         # API 키 없거나 설정 문제 등
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"길찾기 요청 중 오류가 발생했습니다: {e}")
+        err_msg = str(e)
+        # Kakao API 400 응답 시 사용자 친화적 메시지
+        if "400" in err_msg or "Bad Request" in err_msg:
+            raise HTTPException(
+                status_code=400,
+                detail="경로를 찾을 수 없습니다. 장소가 너무 멀리 떨어져 있거나, 해당 Day의 장소를 7개 이하로 줄여주세요.",
+            )
+        raise HTTPException(status_code=500, detail=f"길찾기 요청 중 오류가 발생했습니다: {err_msg}")
 

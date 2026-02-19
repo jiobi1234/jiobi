@@ -19,6 +19,8 @@ export interface KakaoMapMarker {
   description?: string;
   onClick?: () => void;
   day?: number; // Day별 마커 색상 구분용
+  number?: number; // 경유지 순서 (1, 2, 3...) - 번호 마커
+  isMyLocation?: boolean; // 내 위치 마커 (파란 점)
 }
 
 export interface UseKakaoMapOptions {
@@ -37,6 +39,8 @@ export interface UseKakaoMapReturn {
   setCenter: (lat: number, lng: number) => void;
   setLevel: (level: number) => void;
   setPolyline: (points: { lat: number; lng: number }[]) => void;
+  /** 모든 포인트가 보이도록 지도 영역 조정 */
+  setFitBounds: (points: { lat: number; lng: number }[], padding?: number) => void;
 }
 
 /**
@@ -164,7 +168,33 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
           title: markerData.title,
         };
 
-        if (markerData.day != null) {
+        if (markerData.isMyLocation) {
+          // 내 위치: 파란 점 + 바깥 원 (네이버/카카오맵 스타일)
+          const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="18" fill="#1890ff" fill-opacity="0.2" stroke="#1890ff" stroke-width="2"/>
+              <circle cx="20" cy="20" r="6" fill="#1890ff" stroke="#ffffff" stroke-width="2"/>
+            </svg>
+          `;
+          const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+          const size = new maps.Size(40, 40);
+          const offset = new maps.Point(20, 20);
+          const image = new maps.MarkerImage(src, size, { offset });
+          markerOptions.image = image;
+        } else if (markerData.number != null) {
+          const num = String(markerData.number);
+          const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+              <circle cx="16" cy="16" r="14" fill="#1890ff" stroke="#ffffff" stroke-width="2"/>
+              <text x="16" y="21" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold" font-family="sans-serif">${num}</text>
+            </svg>
+          `;
+          const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+          const size = new maps.Size(32, 32);
+          const offset = new maps.Point(16, 16);
+          const image = new maps.MarkerImage(src, size, { offset });
+          markerOptions.image = image;
+        } else if (markerData.day != null) {
           const colors = ['#ff4d4f', '#fa8c16', '#fadb14', '#52c41a', '#1890ff', '#722ed1'];
           const color = colors[(Math.max(1, markerData.day) - 1) % colors.length];
           const svg = `
@@ -318,6 +348,29 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
     [map]
   );
 
+  /**
+   * 모든 포인트가 보이도록 지도 영역 조정
+   */
+  const setFitBounds = useCallback(
+    (points: { lat: number; lng: number }[], padding: number = 50) => {
+      if (!map || typeof window === 'undefined' || !points.length) return;
+
+      const kakao = window.kakao;
+      if (!kakao?.maps) return;
+
+      try {
+        const bounds = new kakao.maps.LatLngBounds();
+        points.forEach((p) => {
+          bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
+        });
+        map.setBounds(bounds, padding, padding, padding, padding);
+      } catch (error) {
+        console.error('setFitBounds 실패:', error);
+      }
+    },
+    [map]
+  );
+
   return {
     map,
     isLoaded,
@@ -327,6 +380,7 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
     setCenter,
     setLevel,
     setPolyline,
+    setFitBounds,
   };
 }
 

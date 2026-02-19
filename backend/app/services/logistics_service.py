@@ -16,10 +16,11 @@ class LogisticsService:
         self.db = get_database()
         self.place_normalizer = PlaceNormalizer()
         
-    async def calculate_logistics(self, plan: OptimizedPlanResponse) -> OptimizedPlanResponse:
+    async def calculate_logistics(self, plan: OptimizedPlanResponse, region: str = None) -> OptimizedPlanResponse:
         """
         Module 3: Enriches the plan with coordinates, stay duration, travel time,
         and optionally adds nightly accommodations (숙소).
+        region: 사용자가 입력한 여행 지역 (예: 강릉, 제주) - 검색 시 해당 지역 기준으로 검색
         """
         # 1. 좌표 및 체류 시간 채우기
         for day_plan in plan.days:
@@ -29,7 +30,7 @@ class LogisticsService:
                 try:
                     keyword = item.place
                     
-                    search_result = await self.tour_service.search_keyword_for_logistics(keyword)
+                    search_result = await self.tour_service.search_keyword_for_logistics(keyword, region=region)
                     
                     if search_result:
                         # Place.to_dict() uses standard names (longitude, latitude)

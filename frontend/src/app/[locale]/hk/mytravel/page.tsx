@@ -220,6 +220,13 @@ function MyTravelPageContent() {
                       </button>
                       <button
                         type="button"
+                        className="hk-mytravel-route-view-button"
+                        onClick={() => router.push(`/${locale}/hk/plan/${trip.id}/route`)}
+                      >
+                        경로 보기
+                      </button>
+                      <button
+                        type="button"
                         className="hk-mytravel-travel-mode-button"
                         onClick={() => router.push(`/${locale}/hk/plan/${trip.id}/travel`)}
                       >

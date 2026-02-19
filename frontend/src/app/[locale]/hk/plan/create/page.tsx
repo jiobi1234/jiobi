@@ -100,13 +100,22 @@ export default function PlanCreatePage() {
     setSelectedItemId((prev) => (prev === id ? null : prev));
   };
 
-  const handleAddFromWishlist = (item: WishlistItem) => {
+  const handleAddFromWishlist = async (item: WishlistItem) => {
     const date = activeDate;
     if (!date) {
       showToast('error', '먼저 여행 날짜를 설정해주세요.');
       return;
     }
     const id = `${item.place_id}-${Date.now()}-${Math.random()}`;
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+    try {
+      const detail = await apiClient.hk.getPlaceDetail(item.place_id);
+      latitude = detail.latitude;
+      longitude = detail.longitude;
+    } catch {
+      // 좌표 없으면 지도에 안 나오지만 일정에는 추가
+    }
     setItinerary(prev => [
       ...prev,
       {
@@ -116,7 +125,8 @@ export default function PlanCreatePage() {
         date,
         start_time: '',
         end_time: '',
-        // WishlistItem에는 좌표 정보가 아직 없으므로 지도 마커는 생략
+        latitude,
+        longitude,
       },
     ]);
   };
@@ -508,6 +518,7 @@ export default function PlanCreatePage() {
                 description: i.start_time || i.end_time ? `${i.start_time || ''} ~ ${i.end_time || ''}` : '',
                 onClick: () => setSelectedItemId(i.id),
               }))}
+            fitToView
             className="plan-map"
             style={{ height: '320px' }}
           />

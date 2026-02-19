@@ -41,6 +41,8 @@
     "searchPlaceholder": "Search for places, regions",
     "heroTitle": "Start your own Korean travel<br />with JIOBI!",
     "createPlan": "Create Travel Plan",
+    "createPlanAi": "Create Plan with AI",
+    "createPlanManual": "Create Plan Manually",
     "hotTravelTitle": "What's the hottest Korean travel right now?",
     "themesTitle": "Custom Travel Themes Recommended by JIOBI",
     "noData": "No information found for this category.",

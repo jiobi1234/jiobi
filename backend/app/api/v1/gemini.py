@@ -79,11 +79,10 @@ async def optimize_route(
             data = json.loads(json_text)
             plan = OptimizedPlanResponse(**data)
             
-            # Enrich with logistics (Module 3)
-            # Note: We need to import LogisticsService first
+            # Enrich with logistics (Module 3) - region 전달하여 해당 지역 기준 검색
             from app.services.logistics_service import LogisticsService
             logistics_service = LogisticsService()
-            final_plan = await logistics_service.calculate_logistics(plan)
+            final_plan = await logistics_service.calculate_logistics(plan, region=request.region)
             
             return final_plan
             

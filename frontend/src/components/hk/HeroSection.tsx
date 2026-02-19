@@ -4,26 +4,20 @@ import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getStringParam } from '../../utils/typeGuards';
 import HKButton from './common/HKButton';
-import apiClient from '../../lib/api-client';
-import { useToast } from './common/Toast';
 
 export default function HeroSection() {
   const router = useRouter();
   const params = useParams();
   const locale = getStringParam(params, 'locale') || 'en';
   const t = useTranslations('hk');
-  const { showToast } = useToast();
 
-  const handlePlanClick = () => {
-    // 로그인 여부 확인
-    if (!apiClient.auth.isAuthenticated()) {
-      showToast('info', '로그인 후 계획을 만들 수 있습니다.');
-      router.push(`/${locale}/hk/login`);
-      return;
+  const handlePlanClick = (type: 'ai' | 'manual') => {
+    // 계획 만들기는 로그인 없이 진입 가능. 저장 시점에 로그인 유도.
+    if (type === 'ai') {
+      window.location.href = `/${locale}/hk/plan/ai`;
+    } else {
+      router.push(`/${locale}/hk/plan/create`);
     }
-    
-    // 로그인되어 있으면 계획 선택 페이지로 이동
-    router.push(`/${locale}/hk/plan/select/`);
   };
 
   return (
@@ -31,13 +25,22 @@ export default function HeroSection() {
       <section className="hero-section">
         <div className="hero-content">
           <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: t('heroTitle') }} />
-          <HKButton 
-            variant="solid"
-            size="lg"
-            onClick={handlePlanClick}
-          >
-            {t('createPlan')}
-          </HKButton>
+          <div className="hero-buttons">
+            <HKButton
+              variant="solid"
+              size="lg"
+              onClick={() => handlePlanClick('ai')}
+            >
+              {t('createPlanAi')}
+            </HKButton>
+            <HKButton
+              variant="outline"
+              size="lg"
+              onClick={() => handlePlanClick('manual')}
+            >
+              {t('createPlanManual')}
+            </HKButton>
+          </div>
         </div>
       </section>
 
@@ -75,6 +78,14 @@ export default function HeroSection() {
           font-weight: bold;
           margin-bottom: 30px;
           line-height: 1.2;
+        }
+
+        .hero-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+          justify-content: center;
+          align-items: center;
         }
 
         @media (max-width: 768px) {
