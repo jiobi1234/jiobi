@@ -77,6 +77,33 @@ export default async function LocaleLayout({
         />
       </head>
       <body className="bg-[#E9ECEF] min-h-screen text-[#495057] flex flex-col">
+        {/* ChunkLoadError(동적 세그먼트 이중 인코딩 등) 시 자동 1회 새로고침으로 복구 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function(){
+  var KEY='jiobi_chunk_reload';
+  function getMsg(e){ return (e&&(e.message||(e.reason&&e.reason.message)))||''; }
+  function isChunkError(msg){
+    return msg.indexOf('ChunkLoadError')!==-1||msg.indexOf('Loading chunk')!==-1;
+  }
+  function tryReload(e){
+    var msg=getMsg(e);
+    if(!isChunkError(msg)) return;
+    try{
+      var n=parseInt(sessionStorage.getItem(KEY)||'0',10);
+      if(n>=1) return;
+      sessionStorage.setItem(KEY,'1');
+      window.location.reload();
+    }catch(err){}
+  }
+  window.addEventListener('error',function(e){ tryReload(e); });
+  window.addEventListener('unhandledrejection',function(e){ tryReload(e); });
+  setTimeout(function(){ try{ sessionStorage.removeItem(KEY); }catch(err){} }, 5000);
+})();
+`,
+          }}
+        />
         <ErrorBoundaryWrapper messages={messages}>
           <IntlProvider locale={locale} messages={messages}>
             <ToastProvider>

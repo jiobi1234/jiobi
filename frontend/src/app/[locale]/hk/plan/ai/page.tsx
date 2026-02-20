@@ -40,11 +40,10 @@ export default function AIPage() {
     const [isEditingMode, setIsEditingMode] = useState(editMode);
     const [editingRequest, setEditingRequest] = useState<string>('');
     const [existingPlan, setExistingPlan] = useState<any>(null);
+    const [activeMapDay, setActiveMapDay] = useState<number>(1);
     const [selectedSpot, setSelectedSpot] = useState<any | null>(null);
     const [routePath, setRoutePath] = useState<{ lat: number; lng: number }[] | null>(null);
-    const [routeSummary, setRouteSummary] = useState<{ distanceMeters: number; durationSeconds: number } | null>(null);
     const [routeLoadingDay, setRouteLoadingDay] = useState<number | null>(null);
-    const [kakaoRouteUrl, setKakaoRouteUrl] = useState<string | null>(null);
     // 백엔드에서 좌표를 못 찾은 장소 → 프론트에서 검색으로 보완
     const [enrichedCoords, setEnrichedCoords] = useState<Record<string, { lat: number; lng: number }>>({});
 
@@ -331,7 +330,7 @@ export default function AIPage() {
         end_date: string;
         items: PlanItem[];
     }) => {
-        // 비로그인: 임시 저장 후 로그인으로 보내고, 로그인 후 "이 계획 저장할까요?" 복원
+        // 비로그인: ① 브라우저 임시 저장소에 계획 저장 → ② 로그인 페이지로 이동 → ③ 로그인 후 돌아오면 복원
         if (!apiClient.auth.isAuthenticated()) {
             try {
                 const draft = { planData, finalPlan };
@@ -343,7 +342,8 @@ export default function AIPage() {
             }
             showToast('info', '저장하려면 로그인이 필요합니다. 로그인 후 계획을 저장할 수 있어요.');
             const returnPath = `/${locale}/hk/plan/ai?restoreDraft=1`;
-            router.push(`/${locale}/hk/login?returnUrl=${encodeURIComponent(returnPath)}`);
+            // router.push가 동작하지 않는 경우가 있어 페이지 이동으로 처리
+            window.location.href = `/${locale}/hk/login?returnUrl=${encodeURIComponent(returnPath)}`;
             return;
         }
 
@@ -470,47 +470,49 @@ export default function AIPage() {
         }
     };
 
-    // AI 계획을 지도용 마커로 변환 (백엔드 좌표 + 프론트 검색 보완 좌표)
+    // AI 계획을 지도용 마커로 변환 (선택된 Day만, 마커 클릭 시 세부정보 팝업)
     const aiMapMarkers = useMemo(() => {
         if (!finalPlan || !finalPlan.days) return [];
+        const day = finalPlan.days.find((d: any) => d.day === activeMapDay);
+        if (!day || !day.schedule) return [];
         const markers: {
             lat: number;
             lng: number;
             title?: string;
             description?: string;
+            number?: number;
             onClick?: () => void;
-            day?: number;
         }[] = [];
 
         try {
-            finalPlan.days.forEach((day: any) => {
-                (day.schedule || []).forEach((item: any, idx: number) => {
-                    let lat: number;
-                    let lng: number;
-                    const latRaw = item.latitude ?? item.lat ?? item.mapy;
-                    const lngRaw = item.longitude ?? item.lng ?? item.mapx;
-                    if (latRaw != null && lngRaw != null) {
-                        lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
-                        lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
-                    } else {
-                        const key = `${day.day}-${idx}-${item.place}`;
-                        const enriched = enrichedCoords[key];
-                        if (!enriched) return;
-                        lat = enriched.lat;
-                        lng = enriched.lng;
-                    }
-                    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+            (day.schedule || []).forEach((item: any, idx: number) => {
+                let lat: number;
+                let lng: number;
+                const latRaw = item.latitude ?? item.lat ?? item.mapy;
+                const lngRaw = item.longitude ?? item.lng ?? item.mapx;
+                if (latRaw != null && lngRaw != null) {
+                    lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
+                    lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
+                } else {
+                    const key = `${day.day}-${idx}-${item.place}`;
+                    const enriched = enrichedCoords[key];
+                    if (!enriched) return;
+                    lat = enriched.lat;
+                    lng = enriched.lng;
+                }
+                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
 
-                    markers.push({
-                        lat,
-                        lng,
-                        day: day.day,
-                        onClick: () =>
-                            setSelectedSpot({
-                                day: day.day,
-                                ...item,
-                            }),
-                    });
+                markers.push({
+                    lat,
+                    lng,
+                    title: item.place,
+                    description: item.description,
+                    number: idx + 1,
+                    onClick: () =>
+                        setSelectedSpot({
+                            day: day.day,
+                            ...item,
+                        }),
                 });
             });
         } catch {
@@ -518,87 +520,90 @@ export default function AIPage() {
         }
 
         return markers;
-    }, [finalPlan, enrichedCoords]);
+    }, [finalPlan, enrichedCoords, activeMapDay]);
 
-    // Day별 길찾기 경로 요청
-    const handleShowRouteForDay = async (dayNumber: number) => {
-        if (!finalPlan || !finalPlan.days) return;
-        const day = finalPlan.days.find((d: any) => d.day === dayNumber);
-        if (!day || !day.schedule || day.schedule.length < 2) {
-            showToast('info', '해당 Day에는 길찾기를 위한 최소 2개 이상의 장소가 필요합니다.');
+    // Day 버튼 클릭 시 해당 Day 지도 표시 (경로선은 아래 useEffect에서 로드)
+    const handleShowMapForDay = (dayNumber: number) => {
+        setActiveMapDay(dayNumber);
+    };
+
+    // 선택된 Day의 경로선 로드 (2개 이상 장소일 때만)
+    useEffect(() => {
+        if (!finalPlan?.days || !enrichedCoords) return;
+        const day = finalPlan.days.find((d: any) => d.day === activeMapDay);
+        if (!day?.schedule || day.schedule.length < 2) {
+            setRoutePath(null);
             return;
         }
 
-        try {
-            setRouteLoadingDay(dayNumber);
+        let cancelled = false;
+        const points = day.schedule
+            .map((item: any, idx: number) => {
+                let lat: number;
+                let lng: number;
+                const latRaw = item.latitude ?? item.lat ?? item.mapy;
+                const lngRaw = item.longitude ?? item.lng ?? item.mapx;
+                if (latRaw != null && lngRaw != null) {
+                    lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
+                    lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
+                } else {
+                    const key = `${day.day}-${idx}-${item.place}`;
+                    const enriched = enrichedCoords[key];
+                    if (!enriched) return null;
+                    lat = enriched.lat;
+                    lng = enriched.lng;
+                }
+                if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+                return {
+                    place_id: item.place_id,
+                    name: item.place,
+                    latitude: lat,
+                    longitude: lng,
+                };
+            })
+            .filter((p: any) => p !== null);
+
+        if (points.length < 2) {
             setRoutePath(null);
-            setRouteSummary(null);
-            setKakaoRouteUrl(null);
-
-            const points = day.schedule
-                .map((item: any, idx: number) => {
-                    let lat: number;
-                    let lng: number;
-                    const latRaw = item.latitude ?? item.lat ?? item.mapy;
-                    const lngRaw = item.longitude ?? item.lng ?? item.mapx;
-                    if (latRaw != null && lngRaw != null) {
-                        lat = typeof latRaw === 'string' ? parseFloat(latRaw) : Number(latRaw);
-                        lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : Number(lngRaw);
-                    } else {
-                        const key = `${day.day}-${idx}-${item.place}`;
-                        const enriched = enrichedCoords[key];
-                        if (!enriched) return null;
-                        lat = enriched.lat;
-                        lng = enriched.lng;
-                    }
-                    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-                    return {
-                        place_id: item.place_id,
-                        name: item.place,
-                        latitude: lat,
-                        longitude: lng,
-                    };
-                })
-                .filter((p: any) => p !== null);
-
-            if (points.length < 2) {
-                showToast('info', '해당 Day의 장소 좌표를 찾을 수 없어 길찾기를 표시할 수 없습니다.');
-                return;
-            }
-
-            // 카카오맵 웹 길찾기용 URL (출발/도착만 설정)
-            const start = points[0];
-            const end = points[points.length - 1];
-            const kakaoUrl =
-                `https://map.kakao.com/?sName=${encodeURIComponent(start.name || '')}` +
-                `&sX=${encodeURIComponent(String(start.longitude))}` +
-                `&sY=${encodeURIComponent(String(start.latitude))}` +
-                `&eName=${encodeURIComponent(end.name || '')}` +
-                `&eX=${encodeURIComponent(String(end.longitude))}` +
-                `&eY=${encodeURIComponent(String(end.latitude))}`;
-
-            const route = await apiClient.hk.getRoute(points);
-            const path = (route.path || []).map((v) => ({
-                lat: v.latitude,
-                lng: v.longitude,
-            }));
-
-            setRoutePath(path);
-            setRouteSummary({
-                distanceMeters: route.summary?.distance_meters ?? 0,
-                durationSeconds: route.summary?.duration_seconds ?? 0,
-            });
-        } catch (error) {
-            console.error('길찾기 경로 조회 오류:', error);
-            showToast('error', '길찾기 경로를 불러오는 중 오류가 발생했습니다.');
-        } finally {
-            setRouteLoadingDay(null);
+            return;
         }
-    };
 
-    const aiMapCenter = aiMapMarkers.length
-        ? { lat: aiMapMarkers[0].lat, lng: aiMapMarkers[0].lng }
-        : { lat: 37.5665, lng: 126.978 };
+        setRouteLoadingDay(activeMapDay);
+        setRoutePath(null);
+        apiClient.hk
+            .getRoute(points)
+            .then((route) => {
+                if (cancelled) return;
+                setRoutePath(
+                    (route.path || []).map((v) => ({ lat: v.latitude, lng: v.longitude }))
+                );
+            })
+            .catch((err) => {
+                if (!cancelled) console.error('경로 로드 오류:', err);
+            })
+            .finally(() => {
+                if (!cancelled) setRouteLoadingDay(null);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [finalPlan, activeMapDay, enrichedCoords]);
+
+    const aiMapCenter = useMemo(() => {
+        if (routePath && routePath.length > 0) {
+            const lats = routePath.map((p) => p.lat);
+            const lngs = routePath.map((p) => p.lng);
+            return {
+                lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+                lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+            };
+        }
+        if (aiMapMarkers.length > 0) {
+            return { lat: aiMapMarkers[0].lat, lng: aiMapMarkers[0].lng };
+        }
+        return { lat: 37.5665, lng: 126.978 };
+    }, [routePath, aiMapMarkers]);
 
     return (
         <HKLayout>
@@ -643,11 +648,6 @@ export default function AIPage() {
                         <div className="message assistant">
                             <div className="bubble plan-result-bubble">
                                 <div className="ai-map-in-chat">
-                                    <div className="ai-map-title-row">
-                                        <div className="ai-map-title">
-                                            지도에서 보기
-                                        </div>
-                                    </div>
                                     {finalPlan.days && (
                                         <div className="ai-route-day-buttons">
                                             {finalPlan.days.map((day: any) => (
@@ -655,74 +655,73 @@ export default function AIPage() {
                                                     key={day.day}
                                                     type="button"
                                                     className={`ai-route-day-button${
-                                                        routeLoadingDay === day.day ? ' loading' : ''
-                                                    }`}
-                                                    onClick={() => handleShowRouteForDay(day.day)}
+                                                        activeMapDay === day.day ? ' active' : ''
+                                                    }${routeLoadingDay === day.day ? ' loading' : ''}`}
+                                                    onClick={() => handleShowMapForDay(day.day)}
                                                 >
-                                                    {routeLoadingDay === day.day ? '계산 중...' : `Day ${day.day} 길찾기`}
+                                                    {routeLoadingDay === day.day ? '계산 중...' : `Day ${day.day}`}
                                                 </button>
                                             ))}
                                         </div>
                                     )}
-                                    <KakaoMapScript />
-                                    <KakaoMap
-                                        center={aiMapCenter}
-                                        level={7}
-                                        markers={aiMapMarkers}
-                                        path={routePath || undefined}
-                                        fitToView
-                                        className="ai-map"
-                                        style={{ height: 'min(400px, 50vh)', width: '100%' }}
-                                    />
-                                    {routeSummary && (
-                                        <div className="ai-route-summary">
-                                            <span>
-                                                총 거리:{' '}
-                                                {(routeSummary.distanceMeters / 1000).toFixed(1)} km
-                                            </span>
-                                            <span>
-                                                예상 소요 시간:{' '}
-                                                {Math.round(routeSummary.durationSeconds / 60)}분
-                                            </span>
-                                        </div>
-                                    )}
-                                    {kakaoRouteUrl && (
-                                        <div className="ai-kakao-iframe-wrapper">
-                                            <iframe
-                                                title="카카오맵 길찾기"
-                                                src={kakaoRouteUrl}
-                                                className="ai-kakao-iframe"
-                                                style={{ width: '100%', border: 'none' }}
-                                                height={400}
-                                                allow="fullscreen"
-                                            />
-                                        </div>
-                                    )}
-                                    {selectedSpot && (
-                                        <div className="plan-map-selected">
-                                            <div className="plan-map-selected-title">
-                                                Day {selectedSpot.day} · {selectedSpot.place}
-                                            </div>
-                                            {selectedSpot.description && (
-                                                <div className="plan-map-selected-address">{selectedSpot.description}</div>
-                                            )}
-                                            <div className="plan-map-selected-time">
-                                                {selectedSpot.time || ''}
-                                                {(selectedSpot.time && selectedSpot.stay_duration) ? ' · ' : ''}
-                                                {selectedSpot.stay_duration || ''}
-                                                {selectedSpot.type ? ` · ${selectedSpot.type}` : ''}
-                                            </div>
-                                            {selectedSpot.place_id ? (
-                                                <button
-                                                    type="button"
-                                                    className="plan-map-selected-link"
-                                                    onClick={() => window.open(`/${locale}/hk/${selectedSpot.place_id}`, '_blank')}
+                                    <div className="ai-map-wrap">
+                                        {routeLoadingDay !== null && (
+                                            <div className="ai-map-loading">경로를 계산하고 있어요...</div>
+                                        )}
+                                        <KakaoMapScript />
+                                        <KakaoMap
+                                            center={aiMapCenter}
+                                            level={6}
+                                            markers={aiMapMarkers}
+                                            path={routePath || undefined}
+                                            fitToView
+                                            className="ai-map"
+                                            style={{ height: 'min(480px, 55vh)', width: '100%' }}
+                                        />
+                                        {selectedSpot && (
+                                            <>
+                                                <div
+                                                    className="ai-spot-card-backdrop"
+                                                    onClick={() => setSelectedSpot(null)}
+                                                    aria-hidden
+                                                />
+                                                <div
+                                                    className="ai-spot-card"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    role="dialog"
+                                                    aria-label="장소 세부정보"
                                                 >
-                                                    장소 상세 보기
+                                                    <button
+                                                    type="button"
+                                                    className="ai-spot-card-close"
+                                                    onClick={() => setSelectedSpot(null)}
+                                                    aria-label="닫기"
+                                                >
+                                                    ×
                                                 </button>
-                                            ) : null}
-                                        </div>
-                                    )}
+                                                <div className="ai-spot-card-title">{selectedSpot.place}</div>
+                                                {selectedSpot.description && (
+                                                    <div className="ai-spot-card-desc">{selectedSpot.description}</div>
+                                                )}
+                                                <div className="ai-spot-card-meta">
+                                                    {selectedSpot.time || ''}
+                                                    {(selectedSpot.time && selectedSpot.stay_duration) ? ' · ' : ''}
+                                                    {selectedSpot.stay_duration || ''}
+                                                    {selectedSpot.type ? ` · ${selectedSpot.type}` : ''}
+                                                </div>
+                                                {selectedSpot.place_id ? (
+                                                    <button
+                                                        type="button"
+                                                        className="ai-spot-card-link"
+                                                        onClick={() => window.open(`/${locale}/hk/${selectedSpot.place_id}`, '_blank')}
+                                                    >
+                                                        장소 상세 보기
+                                                    </button>
+                                                ) : null}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -977,9 +976,119 @@ export default function AIPage() {
           cursor: default;
         }
 
+        .ai-route-day-button.active {
+          background: #1890ff;
+          border-color: #1890ff;
+          color: #fff;
+        }
+
+        .ai-map-wrap {
+          position: relative;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .ai-map-loading {
+          position: absolute;
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(0, 0, 0, 0.7);
+          color: #fff;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 0.9rem;
+          z-index: 10;
+        }
+
         .ai-map {
           border-radius: 12px;
           overflow: hidden;
+        }
+
+        .ai-spot-card-backdrop {
+          position: absolute;
+          inset: 0;
+          z-index: 5;
+          background: transparent;
+          cursor: default;
+        }
+
+        .ai-spot-card {
+          position: absolute;
+          left: 50%;
+          top: 20px;
+          transform: translateX(-50%);
+          z-index: 10;
+          width: calc(100% - 32px);
+          max-width: 420px;
+          padding: 20px 24px;
+          padding-top: 36px;
+          background: #fff;
+          border: 1px solid #e0e0e0;
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          cursor: default;
+          text-align: center;
+        }
+
+        .ai-spot-card-close {
+          position: absolute;
+          top: 8px;
+          right: 12px;
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          border: none;
+          background: transparent;
+          color: #888;
+          font-size: 1.5rem;
+          line-height: 1;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: color 0.2s, background 0.2s;
+        }
+
+        .ai-spot-card-close:hover {
+          color: #333;
+          background: #f0f0f0;
+        }
+
+        .ai-spot-card-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #2c3e50;
+          margin-bottom: 10px;
+          line-height: 1.3;
+        }
+
+        .ai-spot-card-desc {
+          font-size: 0.95rem;
+          color: #555;
+          line-height: 1.5;
+          margin-bottom: 10px;
+        }
+
+        .ai-spot-card-meta {
+          font-size: 0.85rem;
+          color: #888;
+          margin-bottom: 12px;
+        }
+
+        .ai-spot-card-link {
+          display: inline-block;
+          padding: 8px 16px;
+          background: #1890ff;
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .ai-spot-card-link:hover {
+          background: #0d7de0;
         }
 
         .ai-route-summary {

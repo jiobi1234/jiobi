@@ -215,7 +215,13 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
         marker.setMap(map);
         markersRef.current.push(marker);
 
-        // 인포윈도우 추가
+        // 커스텀 onClick이 있으면 인포윈도우 없이 클릭만 처리 (상위에서 카드/팝업 등으로 표시)
+        if (markerData.onClick) {
+          kakao.maps.event.addListener(marker, 'click', markerData.onClick);
+          return;
+        }
+
+        // onClick 없을 때만 카카오 인포윈도우 표시 (제목/설명 있는 경우)
         if (markerData.title || markerData.description) {
           const content = `
             <div style="padding:8px; font-size:14px; font-weight:500;">
@@ -230,19 +236,10 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
 
           infowindowsRef.current.push(infowindow);
 
-          // 마커 클릭 이벤트
           kakao.maps.event.addListener(marker, 'click', () => {
-            // 다른 인포윈도우 닫기
             infowindowsRef.current.forEach((iw) => iw.close());
             infowindow.open(map, marker);
-
-            if (markerData.onClick) {
-              markerData.onClick();
-            }
           });
-        } else if (markerData.onClick) {
-          // 인포윈도우 없이 클릭 이벤트만
-          kakao.maps.event.addListener(marker, 'click', markerData.onClick);
         }
       } catch (error) {
         console.error('마커 추가 실패:', error);
