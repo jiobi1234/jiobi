@@ -79,7 +79,15 @@ nohup gunicorn app.main:app --bind 0.0.0.0:8001 --workers 2 --worker-class uvico
 ```
 
 ### 2-6. 프록시 서버 실행 (백그라운드)
-**실행 위치: `/web/jiobisite/frontend/out`** (정적 파일이 있는 폴더)
+
+**방법 A: proxy.py 사용** (frontend 폴더에 proxy.py 업로드 후)
+```bash
+cd /web/jiobisite/frontend
+mkdir -p logs
+nohup python3 proxy.py > logs/proxy.log 2>&1 &
+```
+
+**방법 B: 인라인 명령** (실행 위치: `/web/jiobisite/frontend/out`)
 ```bash
 cd /web/jiobisite/frontend/out
 mkdir -p ../logs
@@ -150,13 +158,24 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             if os.path.exists(idx):
                 self.path = self.path.rstrip('/') + '/index.html'
             else:
-                base = self.path.rstrip('/')
+                base = self.path.rstrip('/').split('?')[0]
                 html_path = self.translate_path(base + '.html')
                 if os.path.exists(html_path):
-                    self.path = base + '.html'
+                    q = ('?' + self.path.split('?')[1]) if '?' in self.path else ''
+                    self.path = base + '.html' + q
                 else:
                     self.send_error(404, 'File not found')
                     return
+        elif not os.path.exists(path):
+            # Next.js trailingSlash: false → /ko/hk/plan/ai 요청 시 ai.html 서빙
+            base = self.path.rstrip('/').split('?')[0]
+            html_path = self.translate_path(base + '.html')
+            if os.path.exists(html_path):
+                q = ('?' + self.path.split('?')[1]) if '?' in self.path else ''
+                self.path = base + '.html' + q
+            else:
+                self.send_error(404, 'File not found')
+                return
         super().do_GET()
 
 socketserver.TCPServer.allow_reuse_address = True

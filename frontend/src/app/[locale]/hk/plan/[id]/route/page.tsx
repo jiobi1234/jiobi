@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import HKLayout from '../../../../../../components/hk/HKLayout';
-import { KakaoMapScript, KakaoMap } from '../../../../../../components/hk/map';
+import { KakaoMapScript, KakaoMap, type KakaoMapMarkerData } from '../../../../../../components/hk/map';
 import { useToast } from '../../../../../../components/hk/common/Toast';
 import apiClient, { type Plan, type PlanItem, type Place } from '../../../../../../lib/api-client';
 import { getStringParam } from '../../../../../../utils/typeGuards';
@@ -64,8 +64,8 @@ export default function PlanRoutePage() {
       .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
   }, [itinerary, activeDate]);
 
-  const routeMarkers = useMemo(() => {
-    const markers = dayItems.map((item, idx) => ({
+  const routeMarkers = useMemo((): KakaoMapMarkerData[] => {
+    const markers: KakaoMapMarkerData[] = dayItems.map((item, idx) => ({
       lat: item.latitude as number,
       lng: item.longitude as number,
       title: item.title,

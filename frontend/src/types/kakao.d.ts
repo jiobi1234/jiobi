@@ -10,6 +10,7 @@ declare global {
         load: (callback: () => void) => void;
         Map: new (container: HTMLElement, options: KakaoMapOptions) => KakaoMap;
         LatLng: new (lat: number, lng: number) => KakaoLatLng;
+        LatLngBounds: new () => KakaoLatLngBoundsInstance;
         Marker: new (options: KakaoMarkerOptions) => KakaoMarker;
         InfoWindow: new (options: KakaoInfoWindowOptions) => KakaoInfoWindow;
         Polyline: new (options: KakaoPolylineOptions) => KakaoPolyline;
@@ -46,6 +47,13 @@ export interface KakaoMap {
   getLevel: () => number;
   panTo: (latlng: KakaoLatLng) => void;
   relayout: () => void;
+  setBounds: (
+    bounds: KakaoLatLngBoundsInstance,
+    paddingTop?: number,
+    paddingRight?: number,
+    paddingBottom?: number,
+    paddingLeft?: number
+  ) => void;
 }
 
 export interface KakaoLatLng {
@@ -191,6 +199,11 @@ export interface KakaoPlacesSearchOptions {
 export interface KakaoLatLngBounds {
   sw: KakaoLatLng;
   ne: KakaoLatLng;
+}
+
+/** LatLngBounds 생성자 반환 타입 (extend 후 setBounds에 전달) */
+export interface KakaoLatLngBoundsInstance {
+  extend: (latlng: KakaoLatLng) => void;
 }
 
 export interface KakaoPlaceResult {
