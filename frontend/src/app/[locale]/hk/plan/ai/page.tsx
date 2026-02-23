@@ -110,8 +110,8 @@ export default function AIPage() {
                 if (cancelled) return;
                 try {
                     const region = planData.region || '';
-                    const keyword = region ? `${region} ${place}` : place;
-                    const res = await apiClient.hk.searchPlaces(keyword, 1, 1, region || undefined);
+                    // 검색 키워드는 장소명만 사용 (region 합치지 않음)
+                    const res = await apiClient.hk.searchPlaces(place, 1, 1, region || undefined);
                     const places = res?.places ?? [];
                     if (places.length > 0 && places[0].latitude != null && places[0].longitude != null) {
                         setEnrichedCoords(prev => ({
@@ -349,17 +349,12 @@ export default function AIPage() {
 
         if (saving) return;
 
-        setSaving(true);
         try {
-            await apiClient.hk.createPlan(planData);
-            sessionStorage.removeItem('hk_draft_plan');
-            showToast('success', '여행 계획이 저장되었습니다!');
-            router.push(`/${locale}/hk/mytravel`);
-        } catch (error) {
-            console.error('계획 저장 중 오류:', error);
-            showToast('error', '계획 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-        } finally {
-            setSaving(false);
+            sessionStorage.setItem('hk_pending_save', JSON.stringify({ planData }));
+            window.location.href = `/${locale}/hk/loading?type=plan-save`;
+        } catch (e) {
+            console.error('저장 준비 실패:', e);
+            showToast('error', '저장 준비에 실패했습니다. 다시 시도해 주세요.');
         }
     };
 

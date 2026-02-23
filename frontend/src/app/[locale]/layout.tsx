@@ -79,6 +79,7 @@ export default async function LocaleLayout({
       <body className="bg-[#E9ECEF] min-h-screen text-[#495057] flex flex-col">
         {/* ChunkLoadError(동적 세그먼트 이중 인코딩 등) 시 자동 1회 새로고침으로 복구 */}
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
 (function(){

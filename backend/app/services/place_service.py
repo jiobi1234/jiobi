@@ -34,12 +34,27 @@ class PlaceService:
             tour_result = await asyncio.to_thread(
                 self.tour_api.search_places, keyword, page, limit, region, district
             )
-            tour_items = tour_result.get("response", {}).get("body", {}).get("items", {}).get("item", [])
+            body = tour_result.get("response", {}).get("body", {})
+            items = body.get("items", {})
+            if not isinstance(items, dict):
+                items = {}
+            tour_items = items.get("item", [])
             if not isinstance(tour_items, list):
                 tour_items = [tour_items] if tour_items else []
+            tour_items = [t for t in tour_items if isinstance(t, dict)]
+            if not tour_items:
+                logger.info(f"TourAPI 검색 결과 0건: keyword={keyword}, region={region}, response_body={str(tour_result)[:800]}")
             return self.normalizer.normalize_list(tour_items, source="tour")
         except Exception as e:
-            logger.warning(f"TourAPI 검색 실패: {str(e)}")
+            import traceback
+            logger.warning(f"TourAPI 검색 실패: keyword={keyword}, error={type(e).__name__}: {str(e)}")
+            logger.debug(f"TourAPI 예외 상세: {traceback.format_exc()}")
+            if hasattr(e, "response") and e.response is not None:
+                try:
+                    resp_text = getattr(e.response, "text", str(e.response))[:500]
+                    logger.warning(f"TourAPI 응답 전문: {resp_text}")
+                except Exception:
+                    pass
             return []
     
     async def _search_kakao_api(
@@ -57,9 +72,22 @@ class PlaceService:
                 self.kakao_api.search_places, keyword, page, limit, region, district
             )
             kakao_items = kakao_result.get("documents", [])
+            if not isinstance(kakao_items, list):
+                kakao_items = [kakao_items] if kakao_items else []
+            kakao_items = [k for k in kakao_items if isinstance(k, dict)]
+            if not kakao_items:
+                logger.info(f"KakaoAPI 검색 결과 0건: keyword={keyword}, region={region}, response_body={str(kakao_result)[:800]}")
             return self.normalizer.normalize_list(kakao_items, source="kakao")
         except Exception as e:
-            logger.warning(f"KakaoAPI 검색 실패: {str(e)}")
+            import traceback
+            logger.warning(f"KakaoAPI 검색 실패: keyword={keyword}, error={type(e).__name__}: {str(e)}")
+            logger.debug(f"KakaoAPI 예외 상세: {traceback.format_exc()}")
+            if hasattr(e, "response") and e.response is not None:
+                try:
+                    resp_text = getattr(e.response, "text", str(e.response))[:500]
+                    logger.warning(f"KakaoAPI 응답 전문: {resp_text}")
+                except Exception:
+                    pass
             return []
     
     def _filter_by_region(self, places: List[Place], region: Optional[str], district: Optional[str]) -> List[Place]:
@@ -212,9 +240,17 @@ class PlaceService:
                 logger.warning(f"KakaoAPI 오류 (다른 API 결과 사용): {str(kakao_places)}")
                 kakao_places = []
             
-            # 두 API 모두 실패한 경우에만 에러
+            # 두 API 모두 실패한 경우: 500 대신 빈 배열 반환 (경로 일부라도 그릴 수 있게)
             if not tour_places and not kakao_places:
-                raise Exception("모든 외부 API 호출이 실패했습니다.")
+                logger.warning(f"장소 검색 결과 없음 (200 빈 배열 반환): keyword={keyword}, region={region}")
+                return {
+                    "keyword": keyword,
+                    "places": [],
+                    "page": page,
+                    "limit": limit,
+                    "total": 0,
+                    "cached": False
+                }
             
             # 결과 합치기 및 데이터 보강 (TourAPI 설명 + KakaoAPI 위치 정보)
             all_places = self._merge_place_data(list(tour_places), list(kakao_places))
@@ -256,7 +292,15 @@ class PlaceService:
             }
         except Exception as e:
             logger.error(f"장소 검색 실패: {str(e)}")
-            raise Exception(f"Failed to search places: {str(e)}")
+            # 캐시/DB 등 내부 오류 시에도 500 대신 빈 배열 반환
+            return {
+                "keyword": keyword,
+                "places": [],
+                "page": page,
+                "limit": limit,
+                "total": 0,
+                "cached": False
+            }
     
     async def get_place_detail(self, place_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -282,6 +326,13 @@ class PlaceService:
                 place_data = await self._get_place_detail_kakao(place_id, logger)
             else:
                 place_data = await self._get_place_detail_tour(place_id, logger)
+
+            # 2-1) place_id가 장소명(숫자 아님)인데 실패 시, 다른 provider로 폴백
+            if not place_data and not place_id.isdigit():
+                if self.api_provider == "kakao":
+                    place_data = await self._get_place_detail_tour(place_id, logger)
+                else:
+                    place_data = await self._get_place_detail_kakao(place_id, logger)
 
             if not place_data:
                 logger.warning(f"외부 API에서도 장소 상세 정보를 찾지 못함: place_id={place_id}")
@@ -329,7 +380,24 @@ class PlaceService:
         except Exception as e:
             logger.warning(f"TourAPI 검색 실패: {str(e)}")
         
-        # 방법 2: 직접 상세 정보 조회 시도
+        # 방법 2: place_id가 숫자가 아니면(장소명) 키워드 검색으로 시도
+        if not place_id.isdigit():
+            try:
+                tour_search_result = await asyncio.to_thread(
+                    self.tour_api.search_places, place_id, 1, 1
+                )
+                if tour_search_result:
+                    items = tour_search_result.get("response", {}).get("body", {}).get("items", {}).get("item", [])
+                    if not isinstance(items, list):
+                        items = [items] if items else []
+                    if items:
+                        place = self.normalizer.from_tour_api(items[0])
+                        logger.info(f"TourAPI 장소명 검색으로 장소 찾음: {place_id}")
+                        return place.to_dict()
+            except Exception as e:
+                logger.warning(f"TourAPI 장소명 검색 실패: {str(e)}")
+        
+        # 방법 3: 직접 상세 정보 조회 시도 (contentid가 숫자인 경우)
         logger.info(f"[TourAPI] 검색 결과에서 못 찾음, 직접 조회 시도: {place_id}")
         is_tour_contentid = place_id.isdigit()
         
@@ -369,6 +437,11 @@ class PlaceService:
                 if str(kakao_result.get("id", "")) == place_id:
                     place = self.normalizer.from_kakao_api(kakao_result)
                     logger.info(f"KakaoAPI place_id 검색으로 장소 찾음: {place_id}")
+                    return place.to_dict()
+                # place_id가 숫자가 아닌 경우(장소명으로 호출): 검색 결과 첫 번째 사용
+                if not place_id.isdigit():
+                    place = self.normalizer.from_kakao_api(kakao_result)
+                    logger.info(f"KakaoAPI 장소명 검색으로 장소 찾음: {place_id}")
                     return place.to_dict()
         except Exception as e:
             logger.warning(f"KakaoAPI place_id 검색 실패: {str(e)}")

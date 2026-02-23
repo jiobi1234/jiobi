@@ -68,9 +68,12 @@ function LoginPageContent() {
 
       if (response.access_token) {
         showToast('success', t('success'));
+        // 토큰 반영 후 목적지로 이동. router.push는 클라이언트 네비게이션 시 인증 상태가 반영되지 않아
+        // 다시 로그인 페이지로 튕기는 현상이 있을 수 있으므로, 전체 이동으로 확실히 처리
+        const destination = safeReturnUrl ?? `/${locale}/hk`;
         setTimeout(() => {
-          router.push(safeReturnUrl ?? `/${locale}/hk`);
-        }, 1000);
+          window.location.href = destination;
+        }, 800);
       } else {
         showToast('error', t('error'));
       }

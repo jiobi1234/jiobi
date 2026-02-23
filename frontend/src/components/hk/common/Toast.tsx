@@ -88,7 +88,7 @@ function ToastContainer() {
           justify-content: center;
           padding: 16px;
           background: rgba(0, 0, 0, 0.4);
-          pointer-events: auto;
+          pointer-events: none;
         }
 
         @media (max-width: 768px) {

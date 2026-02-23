@@ -324,8 +324,8 @@ class TourService:
         import logging
         logger = logging.getLogger(__name__)
 
-        # 지역 포함 검색어 (region 있으면 "지역 장소명" 형태로 검색)
-        search_keyword = f"{region} {keyword}".strip() if region else keyword
+        # 검색 키워드는 장소명만 사용 (region 합치지 않음 - API 검색 성공률 향상)
+        search_keyword = (keyword or "").strip()
 
         # 1) TourAPI 우선 시도
         try:
