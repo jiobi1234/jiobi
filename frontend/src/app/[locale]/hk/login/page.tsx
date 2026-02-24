@@ -7,6 +7,7 @@ import Link from 'next/link';
 import HKLayout from '../../../../components/hk/HKLayout';
 import { useToast } from '../../../../components/hk/common/Toast';
 import apiClient from '../../../../lib/api-client';
+import { API_CONFIG } from '../../../../lib/api-client/config';
 import { logError } from '../../../../utils/logger';
 import { useApiError } from '../../../../hooks/common/useApiError';
 import { useFormValidation } from '../../../../hooks/common/useFormValidation';
@@ -87,7 +88,14 @@ function LoginPageContent() {
   };
 
   const handleGoogleLogin = () => {
-    showToast('info', t('googleComingSoon'));
+    const destination = safeReturnUrl ?? `/${locale}/hk`;
+    // 백엔드 Google OAuth 엔드포인트로 이동 (완료 후 destination으로 리다이렉트)
+    // - 개발: http://localhost:8000/api/v1/auth/...
+    // - 운영: http://jiobi.kr/api/v1/auth/...
+    const loginUrl = `${API_CONFIG.baseURL}/api/v1/auth/google/login?next=${encodeURIComponent(
+      destination
+    )}`;
+    window.location.href = loginUrl;
   };
 
   return (

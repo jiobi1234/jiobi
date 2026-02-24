@@ -39,7 +39,12 @@ class Settings(BaseSettings):
     # Google Maps API
     GOOGLE_MAPS_API_KEY: Optional[str] = None
     GOOGLE_MAPS_API_BASE_URL: str = "https://maps.googleapis.com/maps/api"
-
+    
+    # Google OAuth (Social Login)
+    GOOGLE_OAUTH_CLIENT_ID: Optional[str] = None
+    GOOGLE_OAUTH_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_OAUTH_REDIRECT_URI: Optional[str] = None
+    
     # Google Gemini
     GEMINI_API_KEY: Optional[str] = None
     
