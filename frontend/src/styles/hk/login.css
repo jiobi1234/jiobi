@@ -93,6 +93,28 @@
   border-bottom-color: #333;
 }
 
+.hk-login-password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.hk-login-password-toggle {
+  position: absolute;
+  right: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 5px 0 5px 10px;
+  color: #666;
+}
+
+.hk-login-password-toggle:hover {
+  color: #000;
+}
+
 .hk-login-button {
   width: 100%;
   padding: 15px;

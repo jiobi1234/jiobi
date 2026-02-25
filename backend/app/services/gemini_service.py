@@ -47,8 +47,8 @@ class GeminiService:
             raise Exception("Gemini API is not configured.")
 
         prompt = f"""
-        You are a professional travel planner.
-        Please recommend 15-20 travel destinations (tourist attractions, restaurants, cafes) suitable for a trip to {region} ({duration}).
+        You are a strict local travel expert who only recommends verified, high-quality places.
+        Recommend 15-20 travel destinations (tourist attractions, restaurants, cafes) for {region} ({duration}).
         
         Input Conditions:
         - Region: {region}
@@ -56,10 +56,12 @@ class GeminiService:
         - Themes: {', '.join(themes)}
         - Companions: {companions}
         
-        Requirements:
-        1. Mix tourist attractions (관광지) and food/beverage places (음식점, 카페) appropriately.
-        2. Provide the reason for recommendation briefly.
-        3. Response PROPER JSON format only. No markdown, no additional text.
+        Quality Rules (must follow):
+        1. Exclude unverified hole-in-the-wall shops or places at risk of closure. Prefer places that would have Kakao Map rating 3.8+ or active reviews / well-known landmarks.
+        2. Prefer Instagram-worthy hotspots and locally famous spots (like Blue Ribbon Survey picks) over obscure or outdated suggestions.
+        3. Mix tourist attractions (관광지) and food/beverage places (음식점, 카페) appropriately.
+        4. Provide a brief reason for each recommendation.
+        5. Response PROPER JSON format only. No markdown, no additional text.
         
         Expected JSON Structure:
         {{
@@ -116,8 +118,7 @@ class GeminiService:
                         existing_plan_str += f"  - {item.get('time', '')} {item.get('place', '')} ({item.get('type', '')})\n"
             
             prompt = f"""
-        You are a professional travel planner.
-        Modify the existing travel plan for {region} ({duration}) based on the user's edit request.
+        You are a strict local travel expert. Modify the existing travel plan for {region} ({duration}) based on the user's edit request.
 
         Current Plan:
         {existing_plan_str}
@@ -131,11 +132,12 @@ class GeminiService:
         Requirements:
         1. Keep the structure similar to the existing plan unless the edit request requires major changes.
         2. Apply the user's edit request while maintaining logical flow.
-        3. Distribute places logically across the days (Day 1, Day 2...).
-        4. Ensure meal times (Lunch ~12:00, Dinner ~18:00) are assigned to '음식점' type places.
-        5. Place '숙소' at the end of each day.
-        6. Provide a creative title for the trip (can be same or modified).
-        7. Response PROPER JSON format only.
+        3. Build the route around anchor stores (must-visit landmarks or famous spots in the area); avoid simply picking the nearest place.
+        4. Distribute places logically across the days (Day 1, Day 2...).
+        5. Ensure meal times (Lunch ~12:00, Dinner ~18:00) are assigned to '음식점' type places.
+        6. Place '숙소' at the end of each day.
+        7. Provide a creative title for the trip (can be same or modified).
+        8. Response PROPER JSON format only.
 
         Expected JSON Structure:
         {{
@@ -158,18 +160,18 @@ class GeminiService:
         else:
             # New plan mode
             prompt = f"""
-        You are a professional travel planner.
-        Create an optimized travel schedule for {region} ({duration}) using the provided candidate places.
+        You are a strict local travel expert. Create an optimized travel schedule for {region} ({duration}) using the provided candidate places.
 
         Candidate Places:
         {candidates_str}
 
         Requirements:
-        1. Distribute places logically across the days (Day 1, Day 2...).
-        2. Ensure meal times (Lunch ~12:00, Dinner ~18:00) are assigned to '음식점' type places.
-        3. Place '숙소' at the end of each day.
-        4. Provide a creative title for the trip.
-        5. Response PROPER JSON format only.
+        1. Build the route around anchor stores (must-visit landmarks or famous spots in the area); do not simply choose the nearest place. Prioritize quality and reputation over proximity.
+        2. Distribute places logically across the days (Day 1, Day 2...).
+        3. Ensure meal times (Lunch ~12:00, Dinner ~18:00) are assigned to '음식점' type places.
+        4. Place '숙소' at the end of each day.
+        5. Provide a creative title for the trip.
+        6. Response PROPER JSON format only.
 
         Expected JSON Structure:
         {{

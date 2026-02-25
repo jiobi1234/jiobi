@@ -1,12 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.gemini_service import GeminiService
-from app.models.ai_plan_models import PlanRequest, PlaceSelectionResponse, OptimizedPlanResponse
+from app.services.tour_service import TourService
+from app.models.ai_plan_models import PlanRequest, PlaceSelectionResponse, OptimizedPlanResponse, PlaceCandidate
 import json
+import logging
 from typing import Optional
 
 router = APIRouter()
 gemini_service = GeminiService()
+tour_service = TourService()
+logger = logging.getLogger(__name__)
 
 class ChatRequest(BaseModel):
     message: str
@@ -57,16 +61,29 @@ async def optimize_route(
 ):
     """
     Module 2: Optimize route based on selected places.
+    1.5단계: 검색 게이트 - 지도/길찾기 API에서 검색되지 않는 후보는 제외 후 optimize 진행.
     Supports editing existing plans when editRequest is provided.
     """
     try:
-        # Pydantic model to dict list
-        candidates_list = [c.dict() for c in request.candidates]
-        
-        # Get existing plan from request if available
+        # 1.5단계: 검색 게이트 — 검색되는 후보만 optimize에 전달 (장소가 안 나오는 불만 차단)
+        filtered_candidates: list[PlaceCandidate] = []
+        for c in request.candidates:
+            hit = await tour_service.search_keyword_for_logistics(c.name, region=request.region)
+            if hit is not None:
+                filtered_candidates.append(c)
+            else:
+                logger.info(f"Place candidate dropped (no search result): {c.name}")
+        if not filtered_candidates:
+            raise HTTPException(
+                status_code=422,
+                detail="추천된 장소 중 지도에서 검색되는 곳이 없습니다. 지역명이나 테마를 조금 바꿔서 다시 시도해 주세요."
+            )
+        if len(filtered_candidates) < len(request.candidates):
+            logger.info(f"Filtered {len(request.candidates)} -> {len(filtered_candidates)} candidates (search gate)")
+
+        candidates_list = [c.dict() for c in filtered_candidates]
         existing_plan = getattr(request, 'existingPlan', None)
-        
-        # Module 3 integration: logistics (time/distance)
+
         json_text = await gemini_service.optimize_route(
             region=request.region,
             duration=duration,

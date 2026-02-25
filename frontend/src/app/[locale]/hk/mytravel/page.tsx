@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import HKLayout from '../../../../components/hk/HKLayout';
 import { KakaoMapScript, KakaoMap } from '../../../../components/hk/map';
 import { getStringParam } from '../../../../utils/typeGuards';
+import { useToast } from '../../../../components/hk/common/Toast';
 import apiClient, { type Plan } from '../../../../lib/api-client';
 import '../../../../styles/hk/mytravel.css';
 
@@ -34,6 +35,7 @@ function MyTravelPageContent() {
   const params = useParams();
   const locale = getStringParam(params, 'locale') || 'ko';
   const t = useTranslations('hk.myTravel');
+  const { showToast } = useToast();
   const [sortBy, setSortBy] = useState('latest');
   const [travelStats, setTravelStats] = useState({
     total_destinations: 0,
@@ -44,6 +46,9 @@ function MyTravelPageContent() {
   const [visitedPlaces, setVisitedPlaces] = useState<VisitedPlace[]>([]);
   const [showEditModeModal, setShowEditModeModal] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const tripsContainerRef = useRef<HTMLDivElement | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(3);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // 백엔드에서 실제 여행 계획 목록 로딩
   useEffect(() => {
@@ -88,15 +93,13 @@ function MyTravelPageContent() {
         });
 
         setRecentTrips(sortedTrips);
-
-        // 간단한 통계: 전체 방문 장소 수 = 모든 계획의 장소 개수 합
-        const totalPlaces = mappedTrips.reduce(
-          (sum, trip) => sum + trip.places_count,
-          0
-        );
+        // 정렬이 바뀌거나 리스트가 다시 로딩될 때, 기본 3개만 보이도록 초기화
+        setIsExpanded(false);
+        setVisibleCount(Math.min(3, sortedTrips.length));
 
         setTravelStats({
-          total_destinations: totalPlaces,
+          // 총 여행지: 여행 카드(계획) 수로 표시
+          total_destinations: mappedTrips.length,
           completed_trips: mappedTrips.length,
           shared_trips: 0,
         });
@@ -147,6 +150,41 @@ function MyTravelPageContent() {
     router.push(`/${locale}/hk/plan/${selectedTripId}`);
   };
 
+  const handleDeletePlan = async (tripId: string) => {
+    const confirmDelete = window.confirm('이 여행 계획을 삭제하시겠습니까?');
+    if (!confirmDelete) return;
+
+    if (!apiClient.auth.isAuthenticated()) {
+      showToast('info', '로그인 후 계획을 삭제할 수 있습니다.');
+      return;
+    }
+
+    try {
+      const result = await apiClient.hk.deletePlan(tripId);
+      if (result.success) {
+        showToast('success', '여행 계획이 삭제되었습니다.');
+        setRecentTrips((prevTrips) => {
+          const updatedTrips = prevTrips.filter((trip) => trip.id !== tripId);
+          setTravelStats({
+            // 총 여행지: 여행 카드(계획) 수로 표시
+            total_destinations: updatedTrips.length,
+            completed_trips: updatedTrips.length,
+            shared_trips: 0,
+          });
+          return updatedTrips;
+        });
+      } else {
+        showToast('error', '계획을 찾을 수 없거나 삭제할 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('계획 삭제 중 오류:', error);
+      showToast(
+        'error',
+        '계획 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      );
+    }
+  };
+
   return (
     <>
       <div className="hk-mytravel-container">
@@ -187,11 +225,31 @@ function MyTravelPageContent() {
                 <option value="popular">{t('sortPopular')}</option>
               </select>
             </div>
+            <button
+              type="button"
+              className="hk-mytravel-view-all-button"
+              onClick={() => {
+                if (isExpanded) {
+                  setIsExpanded(false);
+                  setVisibleCount(Math.min(3, recentTrips.length));
+                  tripsContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  setIsExpanded(true);
+                  setVisibleCount(recentTrips.length);
+                }
+              }}
+              disabled={recentTrips.length <= 3}
+            >
+              {isExpanded ? '접기 ▲' : '모두 보기 ▼'}
+            </button>
           </div>
 
-          <div className="hk-mytravel-trips-container">
+          <div
+            className="hk-mytravel-trips-container"
+            ref={tripsContainerRef}
+          >
             {recentTrips.length > 0 ? (
-              recentTrips.map((trip) => (
+              recentTrips.slice(0, visibleCount).map((trip) => (
                 <div key={trip.id} className="hk-mytravel-trip-card">
                   <div className="hk-mytravel-trip-image">
                     {trip.image ? (
@@ -228,9 +286,9 @@ function MyTravelPageContent() {
                       <button
                         type="button"
                         className="hk-mytravel-travel-mode-button"
-                        onClick={() => router.push(`/${locale}/hk/plan/${trip.id}/travel`)}
+                        onClick={() => handleDeletePlan(trip.id)}
                       >
-                        이 계획으로 여행하기
+                        삭제
                       </button>
                     </div>
                   </div>

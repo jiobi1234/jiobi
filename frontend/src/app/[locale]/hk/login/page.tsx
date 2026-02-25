@@ -30,6 +30,7 @@ function LoginPageContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // 로그인 후 돌아갈 경로 (예: 계획 저장 유도 시 /plan/ai?restoreDraft=1)
   const returnUrl = searchParams?.get('returnUrl') ?? null;
@@ -140,23 +141,33 @@ function LoginPageContent() {
               
               <div className="hk-login-form-group">
                 <label className="hk-login-form-label" htmlFor="password">{t('passwordLabel')}</label>
-                <input 
-                  type="password" 
-                  className="hk-login-form-input" 
-                  id="password" 
-                  name="password" 
-                  placeholder={t('passwordPlaceholder')} 
-                  autoComplete="current-password" 
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) {
-                      setFieldTouched('password', true);
-                    }
-                  }}
-                  onBlur={() => setFieldTouched('password', true)}
-                  required 
-                />
+                <div className="hk-login-password-input-container">
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    className="hk-login-form-input" 
+                    id="password" 
+                    name="password" 
+                    placeholder={t('passwordPlaceholder')} 
+                    autoComplete="current-password" 
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (errors.password) {
+                        setFieldTouched('password', true);
+                      }
+                    }}
+                    onBlur={() => setFieldTouched('password', true)}
+                    required 
+                  />
+                  <button
+                    type="button"
+                    className="hk-login-password-toggle"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                  >
+                    {showPassword ? '숨기기' : '보기'}
+                  </button>
+                </div>
               </div>
               
               <button type="submit" className="hk-login-button" disabled={loading}>
