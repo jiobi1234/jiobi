@@ -47,6 +47,14 @@ export default function PlaceDetailPageContent() {
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
   const { error, handleError, clearError } = useApiError();
+  
+  // Google 관련 데이터는 place가 있을 때만 접근
+  const googleRating = place ? (place as any).google_rating as number | undefined : undefined;
+  const googleRatingsTotal = place ? (place as any).google_ratings_total as number | undefined : undefined;
+  const googleReviews = place ? (place as any).google_reviews as any[] | undefined : undefined;
+  const googlePhotos = place ? (place as any).google_photos as { url: string }[] | undefined : undefined;
+  const googleOpeningHours = place ? (place as any).google_opening_hours as any | undefined : undefined;
+  const googleTypes = place ? (place as any).google_types as string[] | undefined : undefined;
 
   useEffect(() => {
     const loadPlaceDetail = async () => {
@@ -124,18 +132,19 @@ export default function PlaceDetailPageContent() {
     );
   }
 
-  const title = getPlaceTitle(place);
-  const address = getPlaceAddress(place);
+  // Google 우선: 제목/주소/전화/웹사이트
+  const title = (place as any).google_name || getPlaceTitle(place);
+  const address =
+    (place as any).google_formatted_address || getPlaceAddress(place);
   const addr1 = getPlaceAddr1(place);
   const addr2 = getPlaceAddr2(place);
-  const tel = getPlaceTel(place);
+  const tel =
+    (place as any).google_formatted_phone_number || getPlaceTel(place);
   const description = getPlaceDescription(place);
   const image = getPlaceImage(place);
   const category = place.category || '';
   const kakaoUrl = place.kakao_url;
-  
-  // 추가 정보
-  const homepage = getPlaceHomepage(place);
+  const homepage = (place as any).google_website || getPlaceHomepage(place);
   const zipcode = getPlaceZipcode(place);
   const usetime = getPlaceUsetime(place);
   const restdate = getPlaceRestdate(place);
@@ -165,9 +174,15 @@ export default function PlaceDetailPageContent() {
           </HKBackButton>
 
           <div className="hk-place-detail">
-            {/* 이미지 섹션 - 이미지가 있으면 표시, 없으면 기본 이미지/아이콘 표시 */}
+            {/* 이미지 섹션 - Google Photos 우선, 없으면 기존 이미지/아이콘 */}
             <div className="hk-place-image">
-              {image ? (
+              {googlePhotos && googlePhotos.length > 0 ? (
+                <img
+                  src={googlePhotos[0].url}
+                  alt={title}
+                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                />
+              ) : image ? (
                 <img
                   src={image}
                   alt={title}
@@ -185,6 +200,23 @@ export default function PlaceDetailPageContent() {
               <h1 className="hk-place-title">{title}</h1>
               
               <div className="hk-place-info-section">
+                {/* 유형 태그 (Google types) */}
+                {googleTypes && googleTypes.length > 0 && (
+                  <div className="hk-place-info-item">
+                    <span className="hk-place-info-icon">🏷️</span>
+                    <div className="hk-place-info-content">
+                      <span className="hk-place-info-label">유형</span>
+                      <div className="hk-place-types">
+                        {googleTypes.map((t, idx) => (
+                          <span key={idx} className="hk-place-type-chip">
+                            {t.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* 주소 정보 */}
                 {(addr1 || address) && (
                   <div className="hk-place-info-item">
@@ -228,7 +260,24 @@ export default function PlaceDetailPageContent() {
                   </div>
                 )}
 
-                {/* 이용시간 */}
+                {/* 영업시간 (Google 기준) */}
+                {googleOpeningHours?.weekday_text && (
+                  <div className="hk-place-info-item">
+                    <span className="hk-place-info-icon">🕒</span>
+                    <div className="hk-place-info-content">
+                      <span className="hk-place-info-label">영업시간 (Google 기준)</span>
+                      <div className="hk-place-opening-hours">
+                        {googleOpeningHours.weekday_text.map((line: string, idx: number) => (
+                          <div key={idx} className="hk-place-opening-line">
+                            {line}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 이용시간 (공공데이터) */}
                 {usetime && (
                   <div className="hk-place-info-item">
                     <span className="hk-place-info-icon">🕐</span>
@@ -353,6 +402,58 @@ export default function PlaceDetailPageContent() {
                 <div className="hk-place-description">
                   <h2>장소 개요</h2>
                   <p>{description}</p>
+                </div>
+              )}
+
+              {/* Google 리뷰 (있을 경우) */}
+              {googleReviews && googleReviews.length > 0 && (
+                <div className="hk-place-description hk-place-google-reviews">
+                  <h2>Google 리뷰</h2>
+                  {typeof googleRating === 'number' && typeof googleRatingsTotal === 'number' && (
+                    <div className="hk-place-rating-inline">
+                      Google 평점 {googleRating.toFixed(1)}점 · 리뷰 {googleRatingsTotal}개 기준
+                    </div>
+                  )}
+                  <div className="hk-place-reviews-list">
+                    {googleReviews.slice(0, 5).map((rev, idx) => (
+                      <div key={idx} className="hk-place-review-card">
+                        <div className="hk-place-review-header">
+                          <span className="hk-place-review-author">
+                            {rev.author_name || '익명 사용자'}
+                          </span>
+                          {typeof rev.rating === 'number' && (
+                            <span className="hk-place-review-rating">
+                              ⭐ {rev.rating.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                        {rev.relative_time_description && (
+                          <div className="hk-place-review-time">
+                            {rev.relative_time_description}
+                          </div>
+                        )}
+                        {rev.text && (
+                          <div className="hk-place-review-text">
+                            {rev.text}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {place.google_place_id && (
+                    <div className="hk-place-review-more">
+                      <a
+                        href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(
+                          place.google_place_id
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hk-place-review-more-link"
+                      >
+                        Google에서 전체 리뷰 보기
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 

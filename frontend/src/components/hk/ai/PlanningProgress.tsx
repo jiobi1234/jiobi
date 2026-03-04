@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-export type PlanningStep = 'selecting' | 'filtering' | 'optimizing' | 'finalizing';
+export type PlanningStep = 'selecting' | 'filtering' | 'validating' | 'optimizing' | 'finalizing';
 
 interface PlanningProgressProps {
   currentStep: PlanningStep;
@@ -28,10 +28,17 @@ const STEP_INFO: Record<PlanningStep, StepInfo> = {
   },
   filtering: {
     id: 'filtering',
-    label: '장소 선별',
+    label: '후보 수집 완료',
     icon: '✨',
-    message: 'AI가 최적의 장소를 선별하고 있어요...',
-    progress: 50,
+    message: '여행지 후보를 정리하고 있어요...',
+    progress: 40,
+  },
+  validating: {
+    id: 'validating',
+    label: '품질 검증',
+    icon: '✅',
+    message: 'Google 평점과 최신 리뷰를 대조해 장소의 품질을 검증 중입니다...',
+    progress: 60,
   },
   optimizing: {
     id: 'optimizing',

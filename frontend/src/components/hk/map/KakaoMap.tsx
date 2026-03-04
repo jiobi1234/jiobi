@@ -81,6 +81,20 @@ export default function KakaoMap({
     });
   }, [isLoaded, markers, addMarker, clearMarkers]);
 
+  // 간단한 거리 계산 (Haversine 근사, km 단위)
+  const computeDistanceKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }): number => {
+    const R = 6371; // 지구 반경 (km)
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+    const lat1 = (a.lat * Math.PI) / 180;
+    const lat2 = (b.lat * Math.PI) / 180;
+    const sinDLat = Math.sin(dLat / 2);
+    const sinDLng = Math.sin(dLng / 2);
+    const aVal = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+    const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+    return R * c;
+  };
+
   // 경로(폴리라인) 표시
   useEffect(() => {
     if (!isLoaded) return;
@@ -88,7 +102,17 @@ export default function KakaoMap({
       setPolyline([]);
       return;
     }
-    setPolyline(path);
+    // 인접 포인트 간 거리를 계산해, 30km 이상 구간이 하나라도 있으면 경고 색상 사용
+    let hasLongSegment = false;
+    for (let i = 1; i < path.length; i += 1) {
+      const dist = computeDistanceKm(path[i - 1], path[i]);
+      if (dist >= 30) {
+        hasLongSegment = true;
+        break;
+      }
+    }
+    const strokeColor = hasLongSegment ? '#fa8c16' : '#1890ff';
+    setPolyline(path, { strokeColor });
   }, [isLoaded, path, setPolyline]);
 
   // fitToView: 마커+경로 전체가 보이도록 지도 영역 조정 (내 위치 제외 - 이동 시 지도가 흔들리지 않도록)

@@ -33,9 +33,15 @@ function PlaceCard({ place, category, onClick }: PlaceCardProps) {
   const { setNavigationHistory } = useHKContext();
   const { showToast } = useToast();
   
-  const title = getPlaceTitle(place);
-  const address = getPlaceAddress(place);
-  const image = getPlaceImage(place);
+  const googleName = (place as any).google_name as string | undefined;
+  const googleFormattedAddress = (place as any).google_formatted_address as string | undefined;
+  const googleRating = (place as any).googleRating as number | undefined;
+  const googleRatingsTotal = (place as any).googleRatingsTotal as number | undefined;
+  const imageUrl = (place as any).imageUrl as string | undefined;
+
+  const title = googleName || getPlaceTitle(place);
+  const address = googleFormattedAddress || getPlaceAddress(place);
+  const image = imageUrl || getPlaceImage(place);
   const icon = getCategoryIcon(category);
   const placeId = getPlaceId(place);
 
@@ -150,6 +156,11 @@ function PlaceCard({ place, category, onClick }: PlaceCardProps) {
         <div className="travel-content">
           <h3>{title}</h3>
           <p>{address}</p>
+          {typeof googleRating === 'number' && typeof googleRatingsTotal === 'number' && (
+            <div className="travel-rating-row">
+              Google 평점 {googleRating.toFixed(1)}점 · 리뷰 {googleRatingsTotal}개 기준
+            </div>
+          )}
         </div>
       </div>
 
@@ -234,6 +245,12 @@ function PlaceCard({ place, category, onClick }: PlaceCardProps) {
           color: #666;
           font-size: 0.9rem;
           line-height: 1.4;
+        }
+
+        .travel-rating-row {
+          margin-top: 8px;
+          font-size: 0.85rem;
+          color: #555;
         }
 
         @media (max-width: 768px) {

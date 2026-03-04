@@ -166,6 +166,33 @@
   color: var(--hk-primary-hover);
 }
 
+.hk-place-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hk-place-type-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--hk-bg-secondary);
+  font-size: 0.8rem;
+  color: var(--hk-text-secondary);
+  text-transform: lowercase;
+}
+
+.hk-place-opening-hours {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+  color: var(--hk-text-secondary);
+}
+
+.hk-place-opening-line {
+  line-height: 1.4;
+}
+
 .hk-place-description {
   margin-top: var(--hk-spacing-xl);
   padding-top: var(--hk-spacing-xl);
@@ -185,6 +212,73 @@
   line-height: 1.9;
   font-size: 1.05rem;
   white-space: pre-wrap;
+}
+
+.hk-place-google-reviews {
+  margin-top: var(--hk-spacing-lg);
+}
+
+.hk-place-rating-inline {
+  font-size: 0.95rem;
+  color: #444;
+  margin-bottom: var(--hk-spacing-md);
+}
+
+.hk-place-reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hk-spacing-md);
+}
+
+.hk-place-review-card {
+  background: var(--hk-bg-secondary);
+  border-radius: var(--hk-radius-md);
+  padding: var(--hk-spacing-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.hk-place-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.hk-place-review-author {
+  font-weight: 600;
+  color: var(--hk-text-primary);
+}
+
+.hk-place-review-rating {
+  font-size: 0.9rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.hk-place-review-time {
+  font-size: 0.85rem;
+  color: var(--hk-text-secondary);
+  margin-bottom: 6px;
+}
+
+.hk-place-review-text {
+  font-size: 0.95rem;
+  color: var(--hk-text-secondary);
+  line-height: 1.6;
+}
+
+.hk-place-review-more {
+  margin-top: var(--hk-spacing-md);
+}
+
+.hk-place-review-more-link {
+  font-size: 0.9rem;
+  color: var(--hk-primary);
+  text-decoration: none;
+}
+
+.hk-place-review-more-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {

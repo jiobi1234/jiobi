@@ -37,7 +37,7 @@ app.add_middleware(
 app.include_router(hk.router, prefix="/api/v1/hk", tags=["hk"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(util.router, prefix="/api/v1", tags=["util"])
-app.include_router(blog.router, prefix="/api/v1", tags=["blog"])
+app.include_router(blog.router, prefix="/api/v1/blog", tags=["blog"])
 app.include_router(gemini.router, prefix="/api/v1/gemini", tags=["gemini"])
 
 @app.get("/")

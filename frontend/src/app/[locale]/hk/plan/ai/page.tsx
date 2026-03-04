@@ -43,6 +43,7 @@ export default function AIPage() {
     const [activeMapDay, setActiveMapDay] = useState<number>(1);
     const [selectedSpot, setSelectedSpot] = useState<any | null>(null);
     const [routePath, setRoutePath] = useState<{ lat: number; lng: number }[] | null>(null);
+    const [hoverPath, setHoverPath] = useState<{ lat: number; lng: number }[] | null>(null);
     const [routeLoadingDay, setRouteLoadingDay] = useState<number | null>(null);
     // 백엔드에서 좌표를 못 찾은 장소 → 프론트에서 검색으로 보완
     const [enrichedCoords, setEnrichedCoords] = useState<Record<string, { lat: number; lng: number }>>({});
@@ -263,22 +264,63 @@ export default function AIPage() {
             }
             const selectionData = await selectRes.json();
 
-            // 2. Filtering - 장소 선별 단계
+            // 2. Filtering - 장소 후보 수집/정리 단계
             setPlanningStep('filtering');
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: `여행지 후보 ${selectionData.candidates.length}곳을 찾았습니다! 이제 AI가 최적의 장소를 선별하고 있어요... ✨`
+                content: `여행지 후보 ${selectionData.candidates.length}곳을 찾았습니다! 지역 내 숨은 명소와 핫플레이스를 정리하고 있어요... ✨`
+            }]);
+
+            // 2.5. Validating - Google 평점/리뷰 기반 품질 검증 단계
+            setPlanningStep('validating');
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Google 평점과 최신 리뷰를 대조해 장소의 품질을 엄격하게 검증하고 있어요... ✅',
             }]);
 
             // 3. Optimize Route - 동선 최적화 단계
             setPlanningStep('optimizing');
-            const optimizeRes = await fetch(`http://localhost:8000/api/v1/gemini/places/optimize?duration=${encodeURIComponent(data.duration)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(selectionData)
-            });
+            const optimizeRes = await fetch(
+                `http://localhost:8000/api/v1/gemini/places/optimize?duration=${encodeURIComponent(
+                    data.duration,
+                )}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(selectionData),
+                },
+            );
 
             if (!optimizeRes.ok) {
+                // 422: 품질 기준을 모두 만족하지 못한 경우 → 사용자 친화적으로 안내
+                if (optimizeRes.status === 422) {
+                    let detail = '';
+                    try {
+                        const errJson = await optimizeRes.json();
+                        detail = typeof errJson?.detail === 'string' ? errJson.detail : '';
+                    } catch {
+                        // 텍스트만 있는 경우 대비
+                        const errText = await optimizeRes.text();
+                        detail = errText;
+                    }
+
+                    console.warn('Optimization quality gate 422:', detail);
+                    setMessages((prev) => [
+                        ...prev,
+                        {
+                            role: 'assistant',
+                            content:
+                                '지금 설정된 Google 평점 기준으로는 추천할 수 있는 장소를 찾기 어려웠어요.\n\n' +
+                                '· 기준 예시: 평점 3.0점 이상, 리뷰 30개 이상\n' +
+                                '· 지역명을 조금 넓게 쓰거나 (예: \"강원도 강릉\" 대신 \"강릉\"),\n' +
+                                '  다른 테마(힐링, 자연, 맛집 등)를 함께 적어주시면 더 많은 후보를 찾을 수 있어요.\n\n' +
+                                (detail ? `서버 메시지: ${detail}` : ''),
+                        },
+                    ]);
+                    setFinalPlan(null);
+                    return;
+                }
+
                 const errorText = await optimizeRes.text();
                 console.error('Optimization error:', errorText);
                 throw new Error(`Optimization failed: ${errorText}`);
@@ -291,6 +333,17 @@ export default function AIPage() {
                 role: 'assistant',
                 content: `최적의 동선을 계산했습니다! 이제 완벽한 일정을 구성하고 있어요... 📅`
             }]);
+
+            // 품질 기준이 완화된 경우, 사용자에게 한 번 안내
+            if (finalPlan.quality_level === 'relaxed' && typeof finalPlan.quality_message === 'string') {
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        role: 'assistant',
+                        content: finalPlan.quality_message as string,
+                    },
+                ]);
+            }
 
             // Save final plan to state
             setFinalPlan(finalPlan);
@@ -375,8 +428,18 @@ export default function AIPage() {
         }
 
         try {
+            // 수정 모드 전용 진행 상태 표시
             setPlanningStep('optimizing');
             setEstimatedTimeRemaining(120);
+            setMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content:
+                        '수정 요청을 분석해서 기존 일정을 기준으로 다시 최적화하고 있어요...\n' +
+                        `요청 내용: "${userRequest}"`,
+                },
+            ]);
 
             // 기존 계획을 candidates 형태로 변환
             let existingCandidates;
@@ -604,18 +667,105 @@ export default function AIPage() {
         <HKLayout>
             <div className="ai-chat-container">
                 <div className="chat-window">
-                    {messages.map((msg, idx) => (
-                        <div key={idx} className={`message ${msg.role}`}>
-                            <div className={`bubble ${msg.plan ? 'plan-result-bubble' : ''}`}>
-                                {msg.plan ? (
-                                    <PlanResultCard
-                                        title={msg.plan.title}
-                                        days={msg.plan.days}
-                                        onSave={handleSavePlan}
-                                        onEdit={handleEditClick}
-                                        saving={saving}
-                                    />
-                                ) : (
+                    {messages.map((msg, idx) => {
+                        const activePlan = msg.plan
+                            ? (finalPlan && finalPlan.days ? finalPlan : msg.plan)
+                            : null;
+
+                        return (
+                            <div key={idx} className={`message ${msg.role}`}>
+                                <div className={`bubble ${activePlan ? 'plan-result-bubble' : ''}`}>
+                                    {activePlan ? (
+                                        <PlanResultCard
+                                            title={activePlan.title}
+                                            days={activePlan.days}
+                                            onSave={handleSavePlan}
+                                            onEdit={handleEditClick}
+                                            saving={saving}
+                                            recommendedAccommodations={activePlan.recommended_accommodations}
+                                            onSelectAccommodation={(day, acc) => {
+                                                if (!finalPlan?.days) return;
+                                                setFinalPlan((prev: any) => {
+                                                    if (!prev?.days) return prev;
+                                                    const next = { ...prev, days: [...prev.days] };
+                                                    const dayIndex = next.days.findIndex((d: any) => d.day === day);
+                                                    if (dayIndex === -1) return prev;
+                                                    const dayPlan = { ...next.days[dayIndex] };
+                                                    const schedule = [...dayPlan.schedule];
+                                                    // 마지막 숙소 아이템 찾기
+                                                    let lastIdx = -1;
+                                                    for (let i = schedule.length - 1; i >= 0; i -= 1) {
+                                                        if ((schedule[i].type || '').includes('숙소')) {
+                                                            lastIdx = i;
+                                                            break;
+                                                        }
+                                                    }
+                                                    const targetIdx =
+                                                        lastIdx >= 0 ? lastIdx : Math.max(schedule.length - 1, 0);
+                                                    const base = schedule[targetIdx];
+                                                    const updated = {
+                                                        ...base,
+                                                        place: acc.name,
+                                                        place_id: acc.place_id || base.place_id,
+                                                    // 숙소 카드에서 선택한 주소를 우선 반영해,
+                                                    // 일정표에 보이는 숙소 주소도 함께 변경되도록 한다.
+                                                    description:
+                                                        acc.address ||
+                                                        base.description ||
+                                                        '하루 일정을 마친 뒤 휴식',
+                                                    };
+                                                    if (acc.latitude != null && acc.longitude != null) {
+                                                        updated.mapy = String(acc.latitude);
+                                                        updated.mapx = String(acc.longitude);
+                                                    }
+                                                    schedule[targetIdx] = updated;
+                                                    dayPlan.schedule = schedule;
+                                                    next.days[dayIndex] = dayPlan;
+                                                    return next;
+                                                });
+                                            }}
+                                            onHoverAccommodation={(day, acc) => {
+                                                if (!acc || !finalPlan?.days) {
+                                                    setHoverPath(null);
+                                                    return;
+                                                }
+                                                const dayPlan = finalPlan.days.find((d: any) => d.day === day);
+                                                if (!dayPlan || !dayPlan.schedule?.length) {
+                                                    setHoverPath(null);
+                                                    return;
+                                                }
+                                                // 오늘 마지막 좌표를 가진 일정 찾기
+                                                let lastItem: any | null = null;
+                                                for (let i = dayPlan.schedule.length - 1; i >= 0; i -= 1) {
+                                                    const it = dayPlan.schedule[i];
+                                                    const latRaw = it.latitude ?? it.lat ?? it.mapy;
+                                                    const lngRaw = it.longitude ?? it.lng ?? it.mapx;
+                                                    if (latRaw != null && lngRaw != null) {
+                                                        lastItem = it;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!lastItem || acc.latitude == null || acc.longitude == null) {
+                                                    setHoverPath(null);
+                                                    return;
+                                                }
+                                                const latEnd = typeof (lastItem.latitude ?? lastItem.mapy) === 'string'
+                                                    ? parseFloat(lastItem.latitude ?? lastItem.mapy)
+                                                    : Number(lastItem.latitude ?? lastItem.mapy);
+                                                const lngEnd = typeof (lastItem.longitude ?? lastItem.mapx) === 'string'
+                                                    ? parseFloat(lastItem.longitude ?? lastItem.mapx)
+                                                    : Number(lastItem.longitude ?? lastItem.mapx);
+                                                if (Number.isNaN(latEnd) || Number.isNaN(lngEnd)) {
+                                                    setHoverPath(null);
+                                                    return;
+                                                }
+                                                setHoverPath([
+                                                    { lat: latEnd, lng: lngEnd },
+                                                    { lat: acc.latitude, lng: acc.longitude },
+                                                ]);
+                                            }}
+                                        />
+                                    ) : (
                                     <>
                                         {msg.content && msg.content.startsWith('여행지 후보를 열심히 검색하고 있어요') ? (
                                             <div className="ai-loading-message">
@@ -633,10 +783,11 @@ export default function AIPage() {
                                             ))
                                         )}
                                     </>
-                                )}
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
                     {/* AI 최종 계획이 생성된 후, 채팅 흐름 안에서 지도 표시 */}
                     {finalPlan && (
@@ -668,7 +819,7 @@ export default function AIPage() {
                                             center={aiMapCenter}
                                             level={6}
                                             markers={aiMapMarkers}
-                                            path={routePath || undefined}
+                                            path={hoverPath || routePath || undefined}
                                             fitToView
                                             className="ai-map"
                                             style={{ height: 'min(480px, 55vh)', width: '100%' }}

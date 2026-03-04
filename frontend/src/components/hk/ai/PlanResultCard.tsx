@@ -17,11 +17,32 @@ interface ScheduleItem {
   place_id?: string;
   travel_time_next_car?: string;
   travel_time_next_walk?: string;
+   google_rating?: number;
+   google_ratings_total?: number;
 }
 
 interface DayPlan {
   day: number;
   schedule: ScheduleItem[];
+}
+
+interface RecommendedAccommodation {
+  place_id?: string | null;
+  name: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  google_rating?: number | null;
+  google_ratings_total?: number | null;
+  image_url?: string | null;
+  tag_type?: string | null;
+  tag_label?: string | null;
+}
+
+interface DayAccommodationOptions {
+  day: number;
+  items: RecommendedAccommodation[];
+  default_place_id?: string | null;
 }
 
 interface PlanResultCardProps {
@@ -35,6 +56,9 @@ interface PlanResultCardProps {
   }) => void;
   onEdit?: () => void;
   saving?: boolean;
+  recommendedAccommodations?: DayAccommodationOptions[];
+  onSelectAccommodation?: (day: number, accommodation: RecommendedAccommodation) => void;
+  onHoverAccommodation?: (day: number, accommodation: RecommendedAccommodation | null) => void;
 }
 
 const getTypeIcon = (type: string): string => {
@@ -61,7 +85,16 @@ const getTypeColor = (type: string): string => {
   return colorMap[type] || '#666';
 };
 
-export default function PlanResultCard({ title, days, onSave, onEdit, saving }: PlanResultCardProps) {
+export default function PlanResultCard({
+  title,
+  days,
+  onSave,
+  onEdit,
+  saving,
+  recommendedAccommodations,
+  onSelectAccommodation,
+  onHoverAccommodation,
+}: PlanResultCardProps) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1])); // 기본 첫 날 펼침
   const params = useParams();
   const locale = getStringParam(params, 'locale') || 'en';
@@ -103,6 +136,7 @@ export default function PlanResultCard({ title, days, onSave, onEdit, saving }: 
         {days.map((dayPlan) => {
           const isExpanded = expandedDays.has(dayPlan.day);
           const scheduleCount = dayPlan.schedule.length;
+          const dayReco = recommendedAccommodations?.find((d) => d.day === dayPlan.day);
 
           return (
             <div key={dayPlan.day} className="day-section">
@@ -168,6 +202,14 @@ export default function PlanResultCard({ title, days, onSave, onEdit, saving }: 
                                 <span className="description-text">{item.description}</span>
                               </div>
                             )}
+                            {typeof item.google_rating === 'number' && typeof item.google_ratings_total === 'number' && (
+                              <div className="schedule-rating">
+                                <span className="rating-icon">⭐</span>
+                                <span className="rating-text">
+                                  Google 평점 {item.google_rating.toFixed(1)} / 리뷰 {item.google_ratings_total}개 기준
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -193,6 +235,47 @@ export default function PlanResultCard({ title, days, onSave, onEdit, saving }: 
                       </div>
                     );
                   })}
+
+                  {dayReco && dayReco.items.length > 0 && (
+                    <div className="accommodation-section">
+                      <div className="accommodation-header">
+                        <span className="accommodation-title">이 동선에 딱 맞는 추천 숙소</span>
+                        <span className="accommodation-subtitle">
+                          Day {dayPlan.day} 일정 기준으로 위치와 평점을 고려해 골랐어요.
+                        </span>
+                      </div>
+                      <div className="accommodation-list">
+                        {dayReco.items.map((acc) => (
+                          <button
+                            key={acc.place_id || acc.name}
+                            type="button"
+                            className="accommodation-card"
+                            onClick={() => onSelectAccommodation && onSelectAccommodation(dayPlan.day, acc)}
+                            onMouseEnter={() =>
+                              onHoverAccommodation && onHoverAccommodation(dayPlan.day, acc)
+                            }
+                            onMouseLeave={() =>
+                              onHoverAccommodation && onHoverAccommodation(dayPlan.day, null)
+                            }
+                          >
+                            <div className="accommodation-name">{acc.name}</div>
+                            {acc.tag_label && (
+                              <div className="accommodation-tag">{acc.tag_label}</div>
+                            )}
+                            {typeof acc.google_rating === 'number' &&
+                              typeof acc.google_ratings_total === 'number' && (
+                                <div className="accommodation-rating">
+                                  ⭐ {acc.google_rating.toFixed(1)} · 리뷰 {acc.google_ratings_total}개
+                                </div>
+                              )}
+                            {acc.address && (
+                              <div className="accommodation-address">{acc.address}</div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -498,6 +581,85 @@ export default function PlanResultCard({ title, days, onSave, onEdit, saving }: 
 
         .travel-text {
           flex: 1;
+        }
+
+        .accommodation-section {
+          margin-top: 12px;
+          padding: 12px 12px 4px;
+          background: #fff;
+          border-radius: 10px;
+          border: 1px dashed #dee2e6;
+        }
+
+        .accommodation-header {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin-bottom: 8px;
+        }
+
+        .accommodation-title {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .accommodation-subtitle {
+          font-size: 0.8rem;
+          color: #777;
+        }
+
+        .accommodation-list {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+        }
+
+        .accommodation-card {
+          min-width: 180px;
+          max-width: 220px;
+          border-radius: 10px;
+          border: 1px solid #e9ecef;
+          background: #f8f9ff;
+          padding: 10px;
+          text-align: left;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+        }
+
+        .accommodation-card:hover {
+          background: #edf2ff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          transform: translateY(-1px);
+        }
+
+        .accommodation-name {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .accommodation-tag {
+          font-size: 0.8rem;
+          color: #1c7ed6;
+          background: #e7f5ff;
+          border-radius: 999px;
+          padding: 2px 8px;
+          display: inline-block;
+        }
+
+        .accommodation-rating {
+          font-size: 0.8rem;
+          color: #555;
+        }
+
+        .accommodation-address {
+          font-size: 0.78rem;
+          color: #868e96;
         }
 
         .plan-actions {

@@ -18,6 +18,18 @@ export interface Place {
   category?: string;
   latitude?: number;
   longitude?: number;
+  // Google Places 정보
+  google_place_id?: string;
+  google_rating?: number;
+  google_ratings_total?: number;
+  google_opening_hours?: any;
+  google_reviews?: any[];
+  google_photos?: { url: string; width?: number; height?: number }[];
+  google_name?: string;
+  google_formatted_address?: string;
+  google_formatted_phone_number?: string;
+  google_website?: string;
+  google_types?: string[];
   // TourAPI 추가 정보
   homepage?: string;  // 홈페이지
   zipcode?: string;  // 우편번호

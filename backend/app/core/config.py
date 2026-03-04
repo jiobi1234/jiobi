@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     GOOGLE_MAPS_API_KEY: Optional[str] = None
     GOOGLE_MAPS_API_BASE_URL: str = "https://maps.googleapis.com/maps/api"
     
+    # Google Places API (평점/리뷰용)
+    GOOGLE_PLACES_API_KEY: Optional[str] = None
+    
     # Google OAuth (Social Login)
     GOOGLE_OAUTH_CLIENT_ID: Optional[str] = None
     GOOGLE_OAUTH_CLIENT_SECRET: Optional[str] = None
@@ -53,6 +56,9 @@ class Settings(BaseSettings):
     
     # Place API Provider 설정 (tour 또는 kakao)
     PLACE_API_PROVIDER: str = "tour"  # 기본값: tour
+
+    # 메인 화면 Featured Places 사용 여부
+    USE_FEATURED_PLACES: bool = True
     
     # Admin 설정
     ADMIN_EMAIL: Optional[str] = None  # 관리자 이메일

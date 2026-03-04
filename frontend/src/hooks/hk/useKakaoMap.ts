@@ -278,9 +278,10 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
 
   /**
    * 경로(폴리라인) 설정/초기화
+   * options.strokeColor: 기본 파란색, 긴 이동 구간 등 경고 시 다른 색상 사용 가능
    */
   const setPolyline = useCallback(
-    (points: { lat: number; lng: number }[]) => {
+    (points: { lat: number; lng: number }[], options?: { strokeColor?: string }) => {
       if (!map || typeof window === 'undefined') return;
 
       const kakao = window.kakao;
@@ -304,7 +305,7 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
         const polyline = new kakao.maps.Polyline({
           path,
           strokeWeight: 4,
-          strokeColor: '#1890ff',
+          strokeColor: options?.strokeColor || '#1890ff',
           strokeOpacity: 0.9,
           strokeStyle: 'solid',
         });

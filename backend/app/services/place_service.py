@@ -5,6 +5,7 @@ from app.api.kakao_api import KakaoAPI
 from app.models.place_models import Place, PlaceNormalizer
 from app.core.mongodb import get_database
 from app.core.config import settings
+from app.services.google_places_service import google_places_service
 from datetime import datetime, timedelta
 import logging
 
@@ -161,7 +162,7 @@ class PlaceService:
         seen_ids = set()
         seen_names = set()
         unique_places = []
-        
+
         for place in places:
             # 1차: place_id로 중복 체크
             place_id = place.place_id or place.id
@@ -180,16 +181,50 @@ class PlaceService:
             
             if name_key and name_key in seen_names:
                 continue
-            
+
             # 중복이 아니면 추가
             if place_id:
                 seen_ids.add(place_id)
             if name_key:
                 seen_names.add(name_key)
             unique_places.append(place)
-        
+
         return unique_places
-    
+
+    def _add_display_fields_to_places(self, places: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        프론트 공통 사용 필드 추가:
+        - imageUrl: Tour/Kakao 이미지가 우선, 없으면 google_photos[0].url 사용
+        - googleRating / googleRatingsTotal: google_rating / google_ratings_total 래핑
+        """
+        enriched: List[Dict[str, Any]] = []
+        for p in places:
+            if not isinstance(p, dict):
+                continue
+            item = dict(p)
+
+            # 이미지 우선순위: Google 사진 > 기존 image
+            google_thumb = None
+            google_photos = item.get("google_photos") or []
+            if isinstance(google_photos, list) and google_photos:
+                first = google_photos[0]
+                if isinstance(first, dict):
+                    google_thumb = first.get("url") or google_thumb
+            base_image = item.get("image")
+
+            image_url = google_thumb or base_image
+            if image_url:
+                item["imageUrl"] = image_url
+
+            if "google_rating" in item:
+                item["googleRating"] = item.get("google_rating")
+            if "google_ratings_total" in item:
+                item["googleRatingsTotal"] = item.get("google_ratings_total")
+
+            enriched.append(item)
+
+        return enriched
+
     async def search_places(
         self, 
         keyword: str = "", 
@@ -213,9 +248,11 @@ class PlaceService:
             
             if cached_result:
                 logger.info(f"캐시에서 검색 결과 반환: {cache_key}")
+                cached_places = cached_result.get("places", []) or []
+                places_with_display = self._add_display_fields_to_places(cached_places)
                 return {
                     "keyword": keyword,
-                    "places": cached_result.get("places", []),
+                    "places": places_with_display,
                     "page": page,
                     "limit": limit,
                     "total": cached_result.get("total", 0),
@@ -267,12 +304,13 @@ class PlaceService:
             
             # Place 객체를 딕셔너리로 변환
             places_dict = [place.to_dict() for place in limited_places]
+            places_with_display = self._add_display_fields_to_places(places_dict)
             
             # 캐시 저장 (24시간 TTL) - 중복 방지
             try:
                 cache_collection.insert_one({
                     "cache_key": cache_key,
-                    "places": places_dict,
+                    "places": places_with_display,
                     "total": len(unique_places),
                     "created_at": datetime.utcnow(),
                     "expires_at": datetime.utcnow() + timedelta(hours=24)
@@ -319,6 +357,8 @@ class PlaceService:
                 logger.info(f"DB에서 장소 상세 정보 찾음: place_id={place_id}")
                 # MongoDB ObjectId 제거
                 doc.pop("_id", None)
+                # Google 상세 정보 보강 (가능한 경우)
+                doc = self._enrich_with_google_details(doc, places_col)
                 return doc
 
             # 2) 설정에 따라 외부 API 선택
@@ -342,6 +382,8 @@ class PlaceService:
             try:
                 place_id_value = place_data.get("place_id") or place_id
                 place_data["place_id"] = place_id_value
+                # Google 상세 정보 보강 (google_place_id가 있는 경우)
+                place_data = self._enrich_with_google_details(place_data, places_col)
                 places_col.update_one(
                     {"place_id": place_id_value},
                     {"$set": place_data, "$setOnInsert": {"created_at": datetime.utcnow()}},
@@ -354,6 +396,94 @@ class PlaceService:
         except Exception as e:
             logger.error(f"장소 상세 정보 조회 실패: {str(e)}")
             raise Exception(f"Failed to get place detail: {str(e)}")
+
+    def _enrich_with_google_details(self, place_data: Dict[str, Any], places_col) -> Dict[str, Any]:
+        """
+        Google Place Details 정보를 place_data에 보강.
+        - google_place_id가 있고, 아직 reviews/영업시간 정보가 없을 때만 호출.
+        - 결과는 MongoDB에도 저장.
+        """
+        try:
+            google_place_id = place_data.get("google_place_id")
+            if not google_place_id:
+                return place_data
+
+            has_details = place_data.get("google_reviews") or place_data.get("google_opening_hours")
+            if has_details:
+                return place_data
+
+            details = google_places_service.get_place_details(google_place_id)
+            if not details:
+                return place_data
+
+            rating = details.get("rating")
+            reviews_total = details.get("user_ratings_total")
+            opening_hours = details.get("opening_hours")
+            reviews = details.get("reviews")
+            photos = details.get("photos")
+            formatted_address = details.get("formatted_address")
+            formatted_phone = details.get("formatted_phone_number")
+            website = details.get("website")
+            types = details.get("types")
+            location = details.get("location") or {}
+
+            # Google 기본 정보 우선 적용
+            if details.get("name"):
+                place_data["google_name"] = details.get("name")
+            if formatted_address:
+                place_data["google_formatted_address"] = formatted_address
+            if formatted_phone:
+                place_data["google_formatted_phone_number"] = formatted_phone
+            if website:
+                place_data["google_website"] = website
+            if types:
+                place_data["google_types"] = types
+
+            # 좌표: Google geometry를 우선 적용
+            lat = location.get("lat")
+            lng = location.get("lng")
+            if lat is not None and lng is not None:
+                place_data["latitude"] = lat
+                place_data["longitude"] = lng
+
+            # 품질 정보
+            if rating is not None:
+                place_data["google_rating"] = rating
+            if reviews_total is not None:
+                place_data["google_ratings_total"] = reviews_total
+            if opening_hours is not None:
+                place_data["google_opening_hours"] = opening_hours
+            if reviews is not None:
+                place_data["google_reviews"] = reviews
+            if photos is not None:
+                place_data["google_photos"] = photos
+
+            # DB에 즉시 반영 (캐싱)
+            place_id_value = place_data.get("place_id")
+            if place_id_value:
+                places_col.update_one(
+                    {"place_id": place_id_value},
+                    {"$set": {
+                        "google_name": place_data.get("google_name"),
+                        "google_formatted_address": place_data.get("google_formatted_address"),
+                        "google_formatted_phone_number": place_data.get("google_formatted_phone_number"),
+                        "google_website": place_data.get("google_website"),
+                        "google_types": place_data.get("google_types"),
+                        "google_rating": place_data.get("google_rating"),
+                        "google_ratings_total": place_data.get("google_ratings_total"),
+                        "google_opening_hours": place_data.get("google_opening_hours"),
+                        "google_reviews": place_data.get("google_reviews"),
+                        "google_photos": place_data.get("google_photos"),
+                        "latitude": place_data.get("latitude"),
+                        "longitude": place_data.get("longitude"),
+                        "google_details_updated_at": datetime.utcnow(),
+                    }},
+                    upsert=True,
+                )
+        except Exception as e:
+            logger.warning(f"Google details enrichment failed for place_id={place_data.get('place_id')}: {e}")
+
+        return place_data
     
     async def _get_place_detail_tour(self, place_id: str, logger) -> Optional[Dict[str, Any]]:
         """TourAPI를 사용한 장소 상세 정보 조회"""
