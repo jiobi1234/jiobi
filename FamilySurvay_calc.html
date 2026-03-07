@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>여수·순천 가족 여행 예상 비용</title>
+  <style>
+    body { font-family: "Malgun Gothic", sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+    h1 { font-size: 1.25rem; margin-bottom: 8px; }
+    .summary { background: #f0f7ff; border: 1px solid #b6d4fe; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+    .summary strong { font-size: 1.5rem; color: #0a58ca; }
+    label { margin-right: 8px; }
+    input[type="number"] { width: 60px; padding: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #dee2e6; padding: 8px 10px; text-align: left; }
+    th { background: #e9ecef; font-weight: 600; }
+    .num { text-align: right; }
+    .unit { font-size: 0.85em; color: #6c757d; }
+  </style>
+</head>
+<body>
+  <h1>여수·순천 가족 여행 예상 비용</h1>
+  <div class="summary" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <span>총 예상 금액: <strong id="totalAmount">0</strong>원</span>
+    <span>
+      <label for="personCount">인원:</label>
+      <input type="number" id="personCount" min="1" max="20" value="9">
+    </span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>분류</th>
+        <th>일차</th>
+        <th>장소</th>
+        <th>단위</th>
+        <th class="num">단가(원)</th>
+        <th class="num">소계(원)</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <!-- 인당 항목: data-unit="per_person", data-price="숫자" -->
+      <!-- 고정 항목: data-unit="fixed", data-price="숫자" -->
+      <tr data-unit="per_person" data-price="3000"><td>관광</td><td>1</td><td>순천 드라마 촬영장</td><td class="unit">인당</td><td class="num">3,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="34000"><td>식사</td><td>1</td><td>참조은시골집 한정식</td><td class="unit">인당</td><td class="num">34,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="fixed" data-price="310000"><td>숙박</td><td>1</td><td>순천만S호텔 (4+3+2인 예시)</td><td class="unit">세트</td><td class="num">310,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="10000"><td>관광</td><td>2</td><td>순천만 국가 정원</td><td class="unit">인당</td><td class="num">10,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="4000"><td>관광</td><td>2</td><td>낙안읍성</td><td class="unit">인당</td><td class="num">4,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="43000"><td>관광</td><td>2</td><td>미남크루즈</td><td class="unit">인당</td><td class="num">43,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="8000"><td>식사</td><td>2</td><td>웃장고기국밥 (점심)</td><td class="unit">인당</td><td class="num">8,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="fixed" data-price="37000"><td>식사</td><td>2</td><td>낭만조개포차 여수본점 (저녁)</td><td class="unit">팀</td><td class="num">37,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="fixed" data-price="315250"><td>숙박</td><td>2</td><td>더호텔수 (4+3+2인 예시)</td><td class="unit">세트</td><td class="num">315,250</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="37900"><td>관광</td><td>3</td><td>아쿠아플래닛</td><td class="unit">인당</td><td class="num">37,900</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="15000"><td>식사</td><td>3</td><td>순이네 밥상</td><td class="unit">인당</td><td class="num">15,000</td><td class="num" data-subtotal></td></tr>
+      <tr data-unit="per_person" data-price="3000"><td>식사</td><td>3</td><td>여수당 (아이스크림)</td><td class="unit">인당</td><td class="num">3,000</td><td class="num" data-subtotal></td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    function formatNum(n) {
+      return Number(n).toLocaleString();
+    }
+    function update() {
+      var personCount = parseInt(document.getElementById('personCount').value, 10) || 0;
+      var total = 0;
+      document.querySelectorAll('#tbody tr[data-unit][data-price]').forEach(function(tr) {
+        var unit = tr.getAttribute('data-unit');
+        var price = parseInt(tr.getAttribute('data-price'), 10) || 0;
+        var sub = unit === 'per_person' ? personCount * price : price;
+        total += sub;
+        var cell = tr.querySelector('[data-subtotal]');
+        if (cell) cell.textContent = formatNum(sub);
+      });
+      document.getElementById('totalAmount').textContent = formatNum(total);
+    }
+    document.getElementById('personCount').addEventListener('input', update);
+    document.getElementById('personCount').addEventListener('change', update);
+    update();
+  </script>
+</body>
+</html>
