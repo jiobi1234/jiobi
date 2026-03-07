@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { locales, isValidLocale } from '../../i18n';
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import ErrorBoundaryWrapper from '../../components/common/ErrorBoundaryWrapper';
 import IntlProvider from '../../components/common/IntlProvider';
 import { ToastProvider } from '../../components/hk/common/Toast';
@@ -58,9 +57,6 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <head>
-        {/* Tailwind CSS CDN */}
-        <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
-        
         {/* Google Fonts - Noto Sans KR */}
         <link
           rel="preconnect"
@@ -113,13 +109,14 @@ export default async function LocaleLayout({
           </IntlProvider>
         </ErrorBoundaryWrapper>
         
-        {/* Google AdSense */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6857449583126977"
-          crossOrigin="anonymous"
-          strategy="lazyOnload"
-        />
+        {/* Google AdSense: 프로덕션에서만 로드 (로컬 403·data-nscript 경고 방지) */}
+        {process.env.NODE_ENV === 'production' && (
+          <script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6857449583126977"
+            crossOrigin="anonymous"
+          />
+        )}
       </body>
     </html>
   );

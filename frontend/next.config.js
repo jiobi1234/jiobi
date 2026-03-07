@@ -5,16 +5,16 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // 개발 환경에서는 정적 export 비활성화 (동적 라우트 사용 가능)
+  // 개발 시 빌드 캐시를 node_modules 안으로 → 백신이 덜 건드려 UNKNOWN(-4094) 오류 감소
+  ...(process.env.NODE_ENV === 'development' ? { distDir: 'node_modules/.cache/next' } : {}),
   // 프로덕션 빌드 시에만 정적 export 사용
   ...(process.env.NODE_ENV === 'production' ? { output: 'export' } : {}),
   trailingSlash: false,
   // 개발 모드에서 동적 라우팅 안정화를 위한 설정
   ...(process.env.NODE_ENV === 'development' ? {
-    // 개발 모드에서 번들 경로 인코딩 문제 방지
+    // 개발 모드: 번들 경로 인코딩 방지, Watchpack이 시스템 파일 스캔하지 않도록
     webpack: (config, { isServer }) => {
       if (!isServer) {
-        // 클라이언트 번들에서 동적 라우트 경로 처리 개선
         config.optimization = {
           ...config.optimization,
           moduleIds: 'named',

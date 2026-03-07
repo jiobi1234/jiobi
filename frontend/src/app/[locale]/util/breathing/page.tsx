@@ -547,7 +547,7 @@ export default function BreathingPage() {
     }
     sessionConfigRef.current = null;
 
-    // 모든 호흡 소리 중지
+    // 모든 소리 중지 (호흡 소리 + 알람)
     if (inhaleSoundRef.current) {
       inhaleSoundRef.current.pause();
       inhaleSoundRef.current.currentTime = 0;
@@ -560,14 +560,19 @@ export default function BreathingPage() {
       holdSoundRef.current.pause();
       holdSoundRef.current.currentTime = 0;
     }
-    
-    // 알람 소리 반복 재생 (음소거 상태가 아닐 때만)
+    if (alarmSoundRef.current) {
+      alarmSoundRef.current.pause();
+      alarmSoundRef.current.currentTime = 0;
+      alarmSoundRef.current.loop = false;
+    }
+
+    // 완료 시 알람 한 번만 재생 (loop=false로 끝나면 자동 정지)
     if (!isMuted && alarmSoundRef.current) {
-      alarmSoundRef.current.loop = true;
+      alarmSoundRef.current.loop = false;
       alarmSoundRef.current.volume = 1.0;
       alarmSoundRef.current.play().catch(() => {});
     }
-    
+
     setScreen('completion');
   };
 
@@ -632,6 +637,14 @@ export default function BreathingPage() {
       clearTimeout(sessionIntervalRef.current);
       sessionIntervalRef.current = null;
     }
+    // 재시작 전 모든 소리 확실히 정지
+    [inhaleSoundRef, exhaleSoundRef, holdSoundRef, alarmSoundRef].forEach((ref) => {
+      if (ref.current) {
+        ref.current.pause();
+        ref.current.currentTime = 0;
+        if ('loop' in ref.current) ref.current.loop = false;
+      }
+    });
     startSession();
   };
 

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import '../styles/hk/common.css';
-import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'Jiobi.kr - 홈',
@@ -19,9 +18,6 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        {/* Tailwind CSS CDN */}
-        <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
-        
         {/* Google Fonts - Noto Sans KR */}
         <link
           rel="preconnect"
@@ -40,13 +36,14 @@ export default function RootLayout({
       <body className="bg-[#E9ECEF] min-h-screen text-[#495057] flex flex-col">
         {children}
         
-        {/* Google AdSense */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6857449583126977"
-          crossOrigin="anonymous"
-          strategy="lazyOnload"
-        />
+        {/* Google AdSense: 프로덕션에서만 로드 */}
+        {process.env.NODE_ENV === 'production' && (
+          <script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6857449583126977"
+            crossOrigin="anonymous"
+          />
+        )}
       </body>
     </html>
   );
