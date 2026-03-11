@@ -71,6 +71,7 @@
       "friends": "친구 여행"
     },
     "mypage": {
+      "loginRequired": "로그인이 필요한 기능입니다.",
       "welcome": "님 반가워요!",
       "settingsTitle": "설정",
       "emergencyTitle": "긴급",
@@ -95,6 +96,13 @@
       "restaurantTips": "식당에서 주문하는 방법",
       "accommodationTips": "숙소 체크인/아웃 팁",
       "otherTips": "기타 현지 팁"
+    },
+    "wishlist": {
+      "title": "위시리스트",
+      "description": "저장해 둔 장소들을 한눈에 보고, 여행 계획에 활용해 보세요.",
+      "goToPlanCreate": "새 여행 계획 만들기",
+      "loading": "위시리스트를 불러오는 중입니다...",
+      "empty": "위시리스트에 저장된 장소가 없습니다."
     },
     "auth": {
       "login": {

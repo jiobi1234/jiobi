@@ -56,8 +56,8 @@ export default function AdminPage() {
   if (loading) {
     return (
       <HKLayout>
-        <div className="admin-container">
-          <div className="loading">로딩 중...</div>
+        <div className="max-w-6xl mx-auto px-4 py-10">
+          <div className="text-center py-16 text-lg text-slate-500">로딩 중...</div>
         </div>
       </HKLayout>
     );
@@ -69,23 +69,20 @@ export default function AdminPage() {
 
   return (
     <HKLayout>
-      <div className="admin-container">
-        {/* 헤더 섹션 */}
-        <div className="admin-header">
-          <div className="admin-header-top">
-            <p className="admin-subtitle">환영합니다, {username}님</p>
-          </div>
-          <div className="admin-tabs">
+      <div className="max-w-6xl mx-auto px-4 py-10">
+        <div className="mb-8">
+          <p className="text-base text-slate-500 mb-4">환영합니다, {username}님</p>
+          <div className="inline-flex p-1 bg-slate-100 rounded-full gap-1">
             <button
               type="button"
-              className={`admin-tab ${activeTab === 'create' ? 'active' : ''}`}
+              className={`py-2 px-5 rounded-full text-sm font-medium transition ${activeTab === 'create' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-black/5'}`}
               onClick={() => setActiveTab('create')}
             >
               테마 만들기
             </button>
             <button
               type="button"
-              className={`admin-tab ${activeTab === 'list' ? 'active' : ''}`}
+              className={`py-2 px-5 rounded-full text-sm font-medium transition ${activeTab === 'list' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-black/5'}`}
               onClick={() => setActiveTab('list')}
             >
               테마 목록
@@ -123,9 +120,11 @@ export default function AdminPage() {
           />
         )}
 
-        {/* 하단 액션 */}
-        <div className="admin-actions">
-          <Link href={`/${locale}/hk`} className="admin-back-link">
+        <div className="mt-8">
+          <Link
+            href={`/${locale}/hk`}
+            className="inline-block py-3 px-5 text-slate-600 border border-slate-200 rounded-xl text-sm font-medium no-underline hover:bg-slate-50 hover:border-slate-300"
+          >
             ← 메인으로 돌아가기
           </Link>
         </div>

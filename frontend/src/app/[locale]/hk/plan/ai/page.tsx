@@ -9,6 +9,7 @@ import { PlanningStep } from '../../../../../components/hk/ai/PlanningProgress';
 import PlanResultCard from '../../../../../components/hk/ai/PlanResultCard';
 import { KakaoMapScript, KakaoMap } from '../../../../../components/hk/map';
 import apiClient, { type PlanItem, type Plan } from '../../../../../lib/api-client';
+import { API_CONFIG } from '../../../../../lib/api-client/config';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -251,7 +252,7 @@ export default function AIPage() {
                 themes: data.themes.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0)
             };
 
-            const selectRes = await fetch('http://localhost:8000/api/v1/gemini/places/select', {
+            const selectRes = await fetch(`${API_CONFIG.baseURL}/api/v1/gemini/places/select`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData)
@@ -281,7 +282,7 @@ export default function AIPage() {
             // 3. Optimize Route - 동선 최적화 단계
             setPlanningStep('optimizing');
             const optimizeRes = await fetch(
-                `http://localhost:8000/api/v1/gemini/places/optimize?duration=${encodeURIComponent(
+                `${API_CONFIG.baseURL}/api/v1/gemini/places/optimize?duration=${encodeURIComponent(
                     data.duration,
                 )}`,
                 {
@@ -428,16 +429,15 @@ export default function AIPage() {
         }
 
         try {
-            // 수정 모드 전용 진행 상태 표시
-            setPlanningStep('optimizing');
+            // 수정 모드 진행 상태 표시 - 새 계획 생성과 동일하게 단계별 텍스트 안내
             setEstimatedTimeRemaining(120);
+            setPlanningStep('selecting');
             setMessages(prev => [
                 ...prev,
                 {
                     role: 'assistant',
                     content:
-                        '수정 요청을 분석해서 기존 일정을 기준으로 다시 최적화하고 있어요...\n' +
-                        `요청 내용: "${userRequest}"`,
+                        '기존 일정과 장소 후보들을 불러오고 있어요... 🔍',
                 },
             ]);
 
@@ -476,14 +476,46 @@ export default function AIPage() {
                 existingCandidates = [];
             }
 
-            // 수정 요청을 포함한 최적화 API 호출
+            // 후보 정리 단계
+            setPlanningStep('filtering');
+            setMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content:
+                        '기존 일정에서 사용할 수 있는 장소 후보들을 정리하고 있어요... ✨',
+                },
+            ]);
+
+            // 품질 검증 단계 (Google 평점/리뷰 기반)
+            setPlanningStep('validating');
+            setMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content:
+                        'Google 평점과 최신 리뷰를 다시 확인해서, 일정에 넣을 장소들의 품질을 검증하고 있어요... ✅',
+                },
+            ]);
+
+            // 수정 요청을 포함한 최적화 API 호출 (동선 최적화 단계)
+            setPlanningStep('optimizing');
+            setMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content:
+                        '수정 요청을 반영해서 기존 일정을 기준으로 동선을 다시 최적화하고 있어요...\n' +
+                        `요청 내용: "${userRequest}"`,
+                },
+            ]);
             const requestBody = {
                 region: planData.region || '기존 지역',
                 candidates: existingCandidates,
                 existingPlan: planToUse  // 수정 모드일 때 기존 계획 포함
             };
 
-            const optimizeRes = await fetch(`http://localhost:8000/api/v1/gemini/places/optimize?duration=${encodeURIComponent(planData.duration)}&editRequest=${encodeURIComponent(userRequest)}`, {
+            const optimizeRes = await fetch(`${API_CONFIG.baseURL}/api/v1/gemini/places/optimize?duration=${encodeURIComponent(planData.duration)}&editRequest=${encodeURIComponent(userRequest)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -496,6 +528,17 @@ export default function AIPage() {
             }
 
             const updatedPlan = await optimizeRes.json();
+
+            // 일정 구성 단계
+            setPlanningStep('finalizing');
+            setMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: '최적의 동선을 바탕으로 수정된 일정을 구성하고 있어요... 📅',
+                },
+            ]);
+
             // 최신 계획으로 상태 업데이트
             setFinalPlan(updatedPlan);
             setIsEditingMode(false);
@@ -579,6 +622,40 @@ export default function AIPage() {
 
         return markers;
     }, [finalPlan, enrichedCoords, activeMapDay]);
+
+    // 선택된 Day 기준, 여전히 좌표를 찾지 못해 지도에 표시되지 않는 장소 목록
+    const missingSpotsForMap = useMemo(
+        () => {
+            if (!finalPlan || !finalPlan.days) return [] as { place: string; time?: string; type?: string }[];
+            const day = finalPlan.days.find((d: any) => d.day === activeMapDay);
+            if (!day || !day.schedule) return [] as { place: string; time?: string; type?: string }[];
+
+            const missing: { place: string; time?: string; type?: string }[] = [];
+
+            (day.schedule || []).forEach((item: any, idx: number) => {
+                const latRaw = item.latitude ?? item.lat ?? item.mapy;
+                const lngRaw = item.longitude ?? item.lng ?? item.mapx;
+                if (latRaw != null && lngRaw != null) {
+                    return;
+                }
+
+                const key = `${day.day}-${idx}-${item.place}`;
+                const enriched = enrichedCoords[key];
+                if (enriched) {
+                    return;
+                }
+
+                missing.push({
+                    place: item.place,
+                    time: item.time,
+                    type: item.type,
+                });
+            });
+
+            return missing;
+        },
+        [finalPlan, enrichedCoords, activeMapDay],
+    );
 
     // Day 버튼 클릭 시 해당 Day 지도 표시 (경로선은 아래 useEffect에서 로드)
     const handleShowMapForDay = (dayNumber: number) => {
@@ -665,16 +742,16 @@ export default function AIPage() {
 
     return (
         <HKLayout>
-            <div className="ai-chat-container">
-                <div className="chat-window">
+            <div className="max-w-4xl mx-auto px-4 py-8 sm:py-10 flex flex-col gap-4">
+                <div className="flex-1 bg-slate-100 rounded-2xl p-5 overflow-y-auto flex flex-col gap-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] mb-5">
                     {messages.map((msg, idx) => {
                         const activePlan = msg.plan
                             ? (finalPlan && finalPlan.days ? finalPlan : msg.plan)
                             : null;
 
                         return (
-                            <div key={idx} className={`message ${msg.role}`}>
-                                <div className={`bubble ${activePlan ? 'plan-result-bubble' : ''}`}>
+                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={activePlan ? 'w-full max-w-full p-0 bg-transparent border-0 shadow-none' : `max-w-[70%] py-3 px-4 rounded-2xl text-base leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-sky-600 text-white rounded-br-md' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md shadow-sm'}`}>
                                     {activePlan ? (
                                         <PlanResultCard
                                             title={activePlan.title}
@@ -768,9 +845,9 @@ export default function AIPage() {
                                     ) : (
                                     <>
                                         {msg.content && msg.content.startsWith('여행지 후보를 열심히 검색하고 있어요') ? (
-                                            <div className="ai-loading-message">
+                                            <div className="inline-flex items-center gap-0.5">
                                                 <span>여행지 후보를 열심히 검색하고 있어요</span>
-                                                <span className="dots">
+                                                <span className="ai-dots inline-flex ml-0.5">
                                                     <span>.</span>
                                                     <span>.</span>
                                                     <span>.</span>
@@ -791,18 +868,22 @@ export default function AIPage() {
 
                     {/* AI 최종 계획이 생성된 후, 채팅 흐름 안에서 지도 표시 */}
                     {finalPlan && (
-                        <div className="message assistant">
-                            <div className="bubble plan-result-bubble">
-                                <div className="ai-map-in-chat">
+                        <div className="flex justify-start w-full">
+                            <div className="w-full max-w-full p-0 bg-transparent border-0 shadow-none">
+                                <div className="mt-2 w-full min-w-0">
                                     {finalPlan.days && (
-                                        <div className="ai-route-day-buttons">
+                                        <div className="flex flex-wrap gap-2 mb-2">
                                             {finalPlan.days.map((day: any) => (
                                                 <button
                                                     key={day.day}
                                                     type="button"
-                                                    className={`ai-route-day-button${
-                                                        activeMapDay === day.day ? ' active' : ''
-                                                    }${routeLoadingDay === day.day ? ' loading' : ''}`}
+                                                    className={`px-3 py-1.5 text-sm rounded-xl border transition ${
+                                                        activeMapDay === day.day
+                                                            ? 'bg-sky-500 border-sky-500 text-white'
+                                                            : routeLoadingDay === day.day
+                                                            ? 'bg-sky-100 border-sky-500 text-sky-600 cursor-default'
+                                                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-sky-500'
+                                                    }`}
                                                     onClick={() => handleShowMapForDay(day.day)}
                                                 >
                                                     {routeLoadingDay === day.day ? '계산 중...' : `Day ${day.day}`}
@@ -810,9 +891,11 @@ export default function AIPage() {
                                             ))}
                                         </div>
                                     )}
-                                    <div className="ai-map-wrap">
+                                    <div className="relative rounded-xl overflow-hidden">
                                         {routeLoadingDay !== null && (
-                                            <div className="ai-map-loading">경로를 계산하고 있어요...</div>
+                                            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/70 text-white py-2 px-4 rounded-2xl text-sm">
+                                                경로를 계산하고 있어요...
+                                            </div>
                                         )}
                                         <KakaoMapScript />
                                         <KakaoMap
@@ -821,468 +904,118 @@ export default function AIPage() {
                                             markers={aiMapMarkers}
                                             path={hoverPath || routePath || undefined}
                                             fitToView
-                                            className="ai-map"
+                                            className="w-full min-w-0 rounded-xl overflow-hidden"
                                             style={{ height: 'min(480px, 55vh)', width: '100%' }}
                                         />
                                         {selectedSpot && (
                                             <>
                                                 <div
-                                                    className="ai-spot-card-backdrop"
+                                                    className="absolute inset-0 z-[5] cursor-default"
                                                     onClick={() => setSelectedSpot(null)}
                                                     aria-hidden
                                                 />
                                                 <div
-                                                    className="ai-spot-card"
+                                                    className="absolute left-1/2 top-5 -translate-x-1/2 z-10 w-[calc(100%-32px)] max-w-[420px] pt-9 px-6 pb-5 bg-white border border-slate-200 rounded-xl shadow-lg cursor-default text-center"
                                                     onClick={(e) => e.stopPropagation()}
                                                     role="dialog"
                                                     aria-label="장소 세부정보"
                                                 >
                                                     <button
-                                                    type="button"
-                                                    className="ai-spot-card-close"
-                                                    onClick={() => setSelectedSpot(null)}
-                                                    aria-label="닫기"
-                                                >
-                                                    ×
-                                                </button>
-                                                <div className="ai-spot-card-title">{selectedSpot.place}</div>
-                                                {selectedSpot.description && (
-                                                    <div className="ai-spot-card-desc">{selectedSpot.description}</div>
-                                                )}
-                                                <div className="ai-spot-card-meta">
-                                                    {selectedSpot.time || ''}
-                                                    {(selectedSpot.time && selectedSpot.stay_duration) ? ' · ' : ''}
-                                                    {selectedSpot.stay_duration || ''}
-                                                    {selectedSpot.type ? ` · ${selectedSpot.type}` : ''}
-                                                </div>
-                                                {selectedSpot.place_id ? (
-                                                    <button
                                                         type="button"
-                                                        className="ai-spot-card-link"
-                                                        onClick={() => window.open(`/${locale}/hk/${selectedSpot.place_id}`, '_blank')}
+                                                        className="absolute top-2 right-3 w-7 h-7 p-0 border-0 bg-transparent text-slate-500 text-2xl leading-none cursor-pointer rounded hover:text-slate-800 hover:bg-slate-100"
+                                                        onClick={() => setSelectedSpot(null)}
+                                                        aria-label="닫기"
                                                     >
-                                                        장소 상세 보기
+                                                        ×
                                                     </button>
-                                                ) : null}
+                                                    <div className="text-xl font-semibold text-slate-800 mb-2.5">{selectedSpot.place}</div>
+                                                    {selectedSpot.description && (
+                                                        <div className="text-[0.95rem] text-slate-600 leading-relaxed mb-2.5">{selectedSpot.description}</div>
+                                                    )}
+                                                    <div className="text-sm text-slate-500 mb-3">
+                                                        {selectedSpot.time || ''}
+                                                        {(selectedSpot.time && selectedSpot.stay_duration) ? ' · ' : ''}
+                                                        {selectedSpot.stay_duration || ''}
+                                                        {selectedSpot.type ? ` · ${selectedSpot.type}` : ''}
+                                                    </div>
+                                                    {selectedSpot.place_id ? (
+                                                        <button
+                                                            type="button"
+                                                            className="inline-block py-2 px-4 bg-sky-500 text-white border-0 rounded-xl text-sm font-medium cursor-pointer hover:bg-sky-600"
+                                                            onClick={() => window.open(`/${locale}/hk/${selectedSpot.place_id}`, '_blank')}
+                                                        >
+                                                            장소 상세 보기
+                                                        </button>
+                                                    ) : null}
                                                 </div>
                                             </>
                                         )}
                                     </div>
+                                    {missingSpotsForMap.length > 0 && (
+                                        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                                            <div className="mb-1 font-medium">지도에 표시되지 않은 장소</div>
+                                            <ul className="list-inside list-disc space-y-0.5">
+                                                {missingSpotsForMap.map((spot, idx) => (
+                                                    <li key={`${spot.place}-${idx}`}>
+                                                        {spot.time ? `${spot.time} ` : ''}
+                                                        {spot.place}
+                                                        {spot.type ? ` (${spot.type})` : ''}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <div className="mt-1 text-[11px] text-amber-800/80">
+                                                일부 장소는 외부 지도 API에서 좌표를 찾지 못해 지도에 표시되지 않을 수 있어요.
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {isLoading && !planningStep && (
-                        <div className="message assistant">
-                            <div className="bubble typing">...</div>
+                        <div className="flex justify-start">
+                            <div className="max-w-[70%] py-3 px-4 rounded-2xl rounded-bl-md bg-white text-slate-800 border border-slate-200 shadow-sm">...</div>
                         </div>
                     )}
                     <div ref={messagesEndRef} />
                 </div>
 
-                <div className="input-area">
+                <div className="flex gap-2.5">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder={isEditingMode ? "수정 사항을 입력해주세요..." : "메시지를 입력하세요..."}
-                        // 계획 생성/수정 중이거나, 계획이 완성되었지만 아직 수정 모드를 켜지 않은 경우 비활성화
+                        placeholder={isEditingMode ? '수정 사항을 입력해주세요...' : '메시지를 입력하세요...'}
                         disabled={
                             isLoading ||
-                            !!planningStep ||          // AI가 계획을 생성/최적화하는 중
-                            (!isEditingMode && !!finalPlan) // 계획이 완성됐지만 '수정하기'를 누르기 전
+                            !!planningStep ||
+                            (!isEditingMode && !!finalPlan)
                         }
+                        className="flex-1 py-3.5 px-4 border-2 border-slate-200 rounded-2xl text-base outline-none focus:border-sky-500 disabled:opacity-60"
                     />
                     <button
+                        type="button"
                         onClick={handleSend}
                         disabled={
                             isLoading ||
                             !!planningStep ||
                             (!isEditingMode && !!finalPlan)
                         }
+                        className="px-6 py-3.5 bg-sky-600 text-white border-0 rounded-2xl font-semibold cursor-pointer hover:bg-sky-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
                     >
                         전송
                     </button>
                 </div>
             </div>
 
-            <style jsx>{`
-        .ai-chat-container {
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 40px 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .chat-window {
-          flex: 1;
-          background: #f8f9fa;
-          border-radius: 20px;
-          padding: 20px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-          box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
-          margin-bottom: 20px;
-        }
-
-        .message {
-          display: flex;
-        }
-
-        .message.user {
-          justify-content: flex-end;
-        }
-
-        .message.assistant {
-          justify-content: flex-start;
-        }
-
-        .bubble {
-          max-width: 70%;
-          padding: 12px 18px;
-          border-radius: 18px;
-          font-size: 1rem;
-          line-height: 1.5;
-          white-space: pre-wrap;
-        }
-
-        .message.user .bubble {
-          background: #0064ff;
-          color: white;
-          border-bottom-right-radius: 4px;
-        }
-
-        .message.assistant .bubble {
-          background: white;
-          color: #333;
-          border: 1px solid #ddd;
-          border-bottom-left-radius: 4px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
-        .plan-result-bubble {
-          max-width: 100% !important;
-          padding: 0 !important;
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-        }
-
-        .message.assistant:has(.ai-map-in-chat) {
-          width: 100%;
-        }
-
-        .message.assistant:has(.ai-map-in-chat) .bubble {
-          width: 100%;
-        }
-
-        .ai-map-in-chat {
-          margin-top: 8px;
-          width: 100%;
-          min-width: 0;
-        }
-
-        .ai-map-in-chat .ai-map {
-          width: 100% !important;
-          min-width: 0;
-        }
-
-        .ai-loading-message {
-          display: inline-flex;
-          align-items: center;
-          gap: 2px;
-        }
-
-        .ai-loading-message .dots {
-          display: inline-flex;
-          margin-left: 2px;
-        }
-
-        .ai-loading-message .dots span {
-          opacity: 0;
-          animation: dotBlink 1.2s infinite;
-        }
-
-        .ai-loading-message .dots span:nth-child(2) {
-          animation-delay: 0.2s;
-        }
-
-        .ai-loading-message .dots span:nth-child(3) {
-          animation-delay: 0.4s;
-        }
-
-        @keyframes dotBlink {
-          0%, 20% { opacity: 0; }
-          40%, 100% { opacity: 1; }
-        }
-
-        .input-area {
-          display: flex;
-          gap: 10px;
-        }
-
-        input {
-          flex: 1;
-          padding: 15px;
-          border: 2px solid #ddd;
-          border-radius: 30px;
-          font-size: 1rem;
-          outline: none;
-          transition: border-color 0.3s;
-        }
-
-        input:focus {
-          border-color: #0064ff;
-        }
-
-        button {
-          background: #0064ff;
-          color: white;
-          border: none;
-          padding: 0 30px;
-          border-radius: 30px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background 0.3s;
-        }
-
-        button:hover {
-          background: #0056e6;
-        }
-
-        button:disabled {
-          background: #ccc;
-          cursor: not-allowed;
-        }
-
-        .ai-map-title-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-
-        .ai-map-title {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #2c3e50;
-        }
-
-        .ai-marker-toggle-button {
-          border: 1px solid #d0d7de;
-          border-radius: 999px;
-          padding: 4px 10px;
-          font-size: 0.8rem;
-          background: #ffffff;
-          color: #2c3e50;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: background 0.2s, border-color 0.2s;
-        }
-
-        .ai-marker-toggle-button:hover {
-          background: #f3f4f6;
-          border-color: #1890ff;
-        }
-
-        .ai-route-day-buttons {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-
-        .ai-route-day-button {
-          border: 1px solid #d0d7de;
-          border-radius: 999px;
-          padding: 6px 12px;
-          font-size: 0.85rem;
-          background: #ffffff;
-          color: #2c3e50;
-          cursor: pointer;
-          transition: background 0.2s, border-color 0.2s, transform 0.1s;
-        }
-
-        .ai-route-day-button:hover {
-          background: #f3f4f6;
-          border-color: #1890ff;
-        }
-
-        .ai-route-day-button.loading {
-          background: #e6f4ff;
-          border-color: #1890ff;
-          color: #1890ff;
-          cursor: default;
-        }
-
-        .ai-route-day-button.active {
-          background: #1890ff;
-          border-color: #1890ff;
-          color: #fff;
-        }
-
-        .ai-map-wrap {
-          position: relative;
-          border-radius: 12px;
-          overflow: hidden;
-        }
-
-        .ai-map-loading {
-          position: absolute;
-          top: 12px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0, 0, 0, 0.7);
-          color: #fff;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-size: 0.9rem;
-          z-index: 10;
-        }
-
-        .ai-map {
-          border-radius: 12px;
-          overflow: hidden;
-        }
-
-        .ai-spot-card-backdrop {
-          position: absolute;
-          inset: 0;
-          z-index: 5;
-          background: transparent;
-          cursor: default;
-        }
-
-        .ai-spot-card {
-          position: absolute;
-          left: 50%;
-          top: 20px;
-          transform: translateX(-50%);
-          z-index: 10;
-          width: calc(100% - 32px);
-          max-width: 420px;
-          padding: 20px 24px;
-          padding-top: 36px;
-          background: #fff;
-          border: 1px solid #e0e0e0;
-          border-radius: 12px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-          cursor: default;
-          text-align: center;
-        }
-
-        .ai-spot-card-close {
-          position: absolute;
-          top: 8px;
-          right: 12px;
-          width: 28px;
-          height: 28px;
-          padding: 0;
-          border: none;
-          background: transparent;
-          color: #888;
-          font-size: 1.5rem;
-          line-height: 1;
-          cursor: pointer;
-          border-radius: 4px;
-          transition: color 0.2s, background 0.2s;
-        }
-
-        .ai-spot-card-close:hover {
-          color: #333;
-          background: #f0f0f0;
-        }
-
-        .ai-spot-card-title {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #2c3e50;
-          margin-bottom: 10px;
-          line-height: 1.3;
-        }
-
-        .ai-spot-card-desc {
-          font-size: 0.95rem;
-          color: #555;
-          line-height: 1.5;
-          margin-bottom: 10px;
-        }
-
-        .ai-spot-card-meta {
-          font-size: 0.85rem;
-          color: #888;
-          margin-bottom: 12px;
-        }
-
-        .ai-spot-card-link {
-          display: inline-block;
-          padding: 8px 16px;
-          background: #1890ff;
-          color: #fff;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .ai-spot-card-link:hover {
-          background: #0d7de0;
-        }
-
-        .ai-route-summary {
-          margin-top: 8px;
-          font-size: 0.85rem;
-          color: #495057;
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .ai-kakao-iframe-wrapper {
-          margin-top: 12px;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 1px solid #e9ecef;
-        }
-
-        .ai-kakao-iframe {
-          display: block;
-        }
-
-        .ai-map-selected {
-          margin-top: 10px;
-          padding: 10px 12px;
-          border-radius: 10px;
-          border: 1px solid #e9ecef;
-          background: #f8f9fa;
-        }
-
-        .ai-map-selected-title {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #2c3e50;
-          margin-bottom: 4px;
-        }
-
-        .ai-map-selected-time {
-          font-size: 0.85rem;
-          color: #6c757d;
-          margin-bottom: 4px;
-        }
-
-        .ai-map-selected-type {
-          font-size: 0.82rem;
-          color: #495057;
-        }
-      `}</style>
+            <style jsx global>{`
+                .ai-dots span { opacity: 0; animation: dotBlink 1.2s infinite; }
+                .ai-dots span:nth-child(2) { animation-delay: 0.2s; }
+                .ai-dots span:nth-child(3) { animation-delay: 0.4s; }
+                @keyframes dotBlink { 0%, 20% { opacity: 0; } 40%, 100% { opacity: 1; } }
+            `}</style>
         </HKLayout>
     );
 }

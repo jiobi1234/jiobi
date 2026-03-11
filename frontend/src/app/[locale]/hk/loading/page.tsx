@@ -126,8 +126,8 @@ export default function HKLoadingPage() {
     if (type !== 'plan-save') {
         return (
             <HKLayout>
-                <div className="hk-loading-page">
-                    <p>이동 중...</p>
+                <div className="min-h-[60vh] flex flex-col items-center justify-center py-6 text-center">
+                    <p className="text-slate-700">이동 중...</p>
                 </div>
             </HKLayout>
         );
@@ -135,15 +135,18 @@ export default function HKLoadingPage() {
 
     return (
         <HKLayout>
-            <div className="hk-loading-page">
+            <div className="min-h-[60vh] flex flex-col items-center justify-center py-6 text-center px-6">
                 {status === 'loading' && (
                     <>
-                        <div className="hk-loading-message">
-                            <span className="hk-loading-spinner" aria-hidden />
-                            <p>여행 계획을 안전하게 저장하고 있습니다.</p>
-                            <p className="hk-loading-sub">잠시만 기다려 주세요...</p>
+                        <div className="mb-6">
+                            <span
+                                className="inline-block w-10 h-10 border-[3px] border-slate-200 border-t-violet-500 rounded-full animate-spin"
+                                aria-hidden
+                            />
+                            <p className="my-2 text-lg text-slate-800">여행 계획을 안전하게 저장하고 있습니다.</p>
+                            <p className="my-2 text-[0.95rem] text-slate-500">잠시만 기다려 주세요...</p>
                         </div>
-                        <div className="hk-loading-ad">
+                        <div className="min-h-[100px] max-w-[600px] w-full my-6">
                             <ins
                                 className="adsbygoogle"
                                 style={{ display: 'block' }}
@@ -157,23 +160,31 @@ export default function HKLoadingPage() {
                 )}
 
                 {status === 'success' && (
-                    <div className="hk-loading-message success">
-                        <p className="hk-loading-emoji">✅</p>
-                        <p>저장되었습니다.</p>
-                        <p className="hk-loading-sub">잠시 후 내 여행으로 이동합니다.</p>
+                    <div className="mb-6">
+                        <p className="text-4xl block mb-2">✅</p>
+                        <p className="my-2 text-lg text-slate-800">저장되었습니다.</p>
+                        <p className="my-2 text-[0.95rem] text-slate-500">잠시 후 내 여행으로 이동합니다.</p>
                     </div>
                 )}
 
                 {status === 'error' && (
-                    <div className="hk-loading-message error">
-                        <p className="hk-loading-emoji">⚠️</p>
-                        <p className="hk-loading-error-title">저장에 실패했습니다</p>
-                        <p className="hk-loading-error-detail">{errorMessage}</p>
-                        <div className="hk-loading-actions">
-                            <button type="button" className="hk-loading-btn primary" onClick={handleRetry}>
+                    <div className="mb-6">
+                        <p className="text-4xl block mb-2">⚠️</p>
+                        <p className="my-2 font-bold text-red-600">저장에 실패했습니다</p>
+                        <p className="my-2 text-[0.95rem] text-slate-500 max-w-[360px] mx-auto">{errorMessage}</p>
+                        <div className="flex gap-3 justify-center flex-wrap mt-6">
+                            <button
+                                type="button"
+                                className="py-3 px-6 rounded-xl text-base font-semibold cursor-pointer border-0 bg-gradient-to-br from-violet-500 to-purple-600 text-white hover:opacity-90"
+                                onClick={handleRetry}
+                            >
                                 다시 시도
                             </button>
-                            <button type="button" className="hk-loading-btn secondary" onClick={handleBackToPlan}>
+                            <button
+                                type="button"
+                                className="py-3 px-6 rounded-xl text-base font-semibold cursor-pointer border-0 bg-slate-200 text-slate-800 hover:opacity-90"
+                                onClick={handleBackToPlan}
+                            >
                                 계획으로 돌아가기
                             </button>
                         </div>
@@ -181,101 +192,15 @@ export default function HKLoadingPage() {
                 )}
 
                 {status === 'idle' && (
-                    <div className="hk-loading-message">
-                        <span className="hk-loading-spinner" aria-hidden />
-                        <p>준비 중...</p>
+                    <div className="mb-6">
+                        <span
+                            className="inline-block w-10 h-10 border-[3px] border-slate-200 border-t-violet-500 rounded-full animate-spin"
+                            aria-hidden
+                        />
+                        <p className="my-2 text-lg text-slate-800">준비 중...</p>
                     </div>
                 )}
             </div>
-
-            <style jsx>{`
-                .hk-loading-page {
-                    min-height: 60vh;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 24px;
-                    text-align: center;
-                }
-                .hk-loading-message {
-                    margin-bottom: 24px;
-                }
-                .hk-loading-message p {
-                    margin: 8px 0;
-                    font-size: 1.1rem;
-                    color: #333;
-                }
-                .hk-loading-sub {
-                    font-size: 0.95rem !important;
-                    color: #666 !important;
-                }
-                .hk-loading-spinner {
-                    display: inline-block;
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid #e0e0e0;
-                    border-top-color: #667eea;
-                    border-radius: 50%;
-                    animation: hk-spin 0.8s linear infinite;
-                }
-                @keyframes hk-spin {
-                    to { transform: rotate(360deg); }
-                }
-                .hk-loading-ad {
-                    min-height: 100px;
-                    max-width: 600px;
-                    width: 100%;
-                    margin: 24px auto;
-                }
-                .hk-loading-message.success .hk-loading-emoji {
-                    font-size: 2.5rem;
-                    display: block;
-                    margin-bottom: 8px;
-                }
-                .hk-loading-message.error .hk-loading-emoji {
-                    font-size: 2.5rem;
-                    display: block;
-                    margin-bottom: 8px;
-                }
-                .hk-loading-error-title {
-                    font-weight: 700;
-                    color: #c00 !important;
-                }
-                .hk-loading-error-detail {
-                    font-size: 0.95rem !important;
-                    color: #666 !important;
-                    max-width: 360px;
-                    margin-left: auto;
-                    margin-right: auto;
-                }
-                .hk-loading-actions {
-                    display: flex;
-                    gap: 12px;
-                    justify-content: center;
-                    flex-wrap: wrap;
-                    margin-top: 24px;
-                }
-                .hk-loading-btn {
-                    padding: 12px 24px;
-                    border-radius: 12px;
-                    font-size: 1rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    border: none;
-                }
-                .hk-loading-btn.primary {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: #fff;
-                }
-                .hk-loading-btn.secondary {
-                    background: #f0f0f0;
-                    color: #333;
-                }
-                .hk-loading-btn:hover {
-                    opacity: 0.9;
-                }
-            `}</style>
         </HKLayout>
     );
 }

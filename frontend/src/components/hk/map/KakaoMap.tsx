@@ -27,12 +27,23 @@ export interface KakaoMapProps {
   path?: { lat: number; lng: number }[];
   /** true면 마커+경로 전체가 보이도록 지도 영역 자동 조정 */
   fitToView?: boolean;
+  /** 특정 구간/포인트에 포커스를 맞추기 위한 좌표 목록 (있으면 우선적으로 사용) */
+  focusPoints?: { lat: number; lng: number }[] | null;
   /** 컨테이너 div에 줄 className */
   className?: string;
   /** 컨테이너 div에 줄 style (height 등) */
   style?: React.CSSProperties;
   /** 고정 containerId (미입력 시 useId로 자동 생성) */
   containerId?: string;
+  /** 지도가 이동/확대·축소된 뒤 한 번씩 호출되는 콜백 (viewport 기준 장소 검색 등에 사용) */
+  onIdle?: (info: {
+    center: { lat: number; lng: number };
+    level: number;
+    bounds: {
+      sw: { lat: number; lng: number };
+      ne: { lat: number; lng: number };
+    };
+  }) => void;
 }
 
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.9780 };
@@ -48,9 +59,11 @@ export default function KakaoMap({
   markers = [],
   path,
   fitToView = false,
+  focusPoints = null,
   className,
   style,
   containerId: containerIdProp,
+  onIdle,
 }: KakaoMapProps) {
   const generatedId = useId();
   const containerId = containerIdProp ?? `kakao-map-${generatedId.replace(/:/g, '')}`;
@@ -111,7 +124,8 @@ export default function KakaoMap({
         break;
       }
     }
-    const strokeColor = hasLongSegment ? '#fa8c16' : '#1890ff';
+    // 기본 경로는 청록색, 장거리 구간이 있는 경우는 붉은색 계열로 표시
+    const strokeColor = hasLongSegment ? '#f5222d' : '#13c2c2';
     setPolyline(path, { strokeColor });
   }, [isLoaded, path, setPolyline]);
 
@@ -131,6 +145,52 @@ export default function KakaoMap({
       : points;
     setFitBounds(pts);
   }, [isLoaded, fitToView, markers, path, setFitBounds]);
+
+  // focusPoints가 주어지면 해당 구간에 맞춰 지도를 재조정
+  useEffect(() => {
+    if (!isLoaded || !focusPoints || focusPoints.length === 0) return;
+    setFitBounds(focusPoints);
+  }, [isLoaded, focusPoints, setFitBounds]);
+
+  // onIdle 콜백: 지도가 이동/확대·축소된 뒤 현재 중심/레벨/bounds 정보를 상위에 전달
+  useEffect(() => {
+    if (!isLoaded || !map || !onIdle) return;
+    if (typeof window === 'undefined') return;
+    const kakao = (window as any).kakao;
+    if (!kakao?.maps) return;
+
+    const handler = () => {
+      try {
+        // kakao.maps.Map 타입 정의에 getBounds가 없어서 any 캐스팅
+        const kakaoMap = map as any;
+        const centerLatLng = kakaoMap.getCenter();
+        const bounds = kakaoMap.getBounds();
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        const levelNow = kakaoMap.getLevel();
+        onIdle({
+          center: { lat: centerLatLng.getLat(), lng: centerLatLng.getLng() },
+          level: levelNow,
+          bounds: {
+            sw: { lat: sw.getLat(), lng: sw.getLng() },
+            ne: { lat: ne.getLat(), lng: ne.getLng() },
+          },
+        });
+      } catch {
+        // ignore
+      }
+    };
+
+    kakao.maps.event.addListener(map, 'idle', handler);
+
+    return () => {
+      try {
+        kakao.maps.event.removeListener(map, 'idle', handler);
+      } catch {
+        // ignore
+      }
+    };
+  }, [isLoaded, map, onIdle]);
 
   // 컨테이너 크기 확정 후 지도 relayout (채팅창 내 지도가 전체 너비로 그려지도록)
   useEffect(() => {

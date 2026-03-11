@@ -38,151 +38,69 @@ export default function HKInput({
   const hasLeftIcon = !!leftIcon;
   const hasRightIcon = !!rightIcon;
 
+  const baseInputClass =
+    'w-full rounded-2xl border bg-slate-900/60 px-4 py-3 text-sm text-slate-100 shadow-sm outline-none transition ' +
+    'placeholder:text-slate-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-60';
+
+  const errorClass = hasError
+    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/40'
+    : 'border-slate-700';
+
+  const iconPaddingClass = [
+    hasLeftIcon && 'pl-10',
+    hasRightIcon && 'pr-10',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   const inputClassName = [
-    'hk-input',
-    hasError && 'hk-input--error',
-    hasLeftIcon && 'hk-input--has-left-icon',
-    hasRightIcon && 'hk-input--has-right-icon',
-    fullWidth && 'hk-input--full',
-    className
-  ].filter(Boolean).join(' ');
+    baseInputClass,
+    errorClass,
+    iconPaddingClass,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <>
-      <div className={`hk-input-wrapper ${fullWidth ? 'hk-input-wrapper--full' : ''}`}>
-        {label && (
-          <label htmlFor={inputId} className="hk-input-label">
-            {label}
-          </label>
+    <div className={['flex flex-col gap-1.5', fullWidth && 'w-full'].filter(Boolean).join(' ')}>
+      {label && (
+        <label
+          htmlFor={inputId}
+          className="text-xs font-medium text-slate-300"
+        >
+          {label}
+        </label>
+      )}
+
+      <div className="relative flex items-center">
+        {leftIcon && (
+          <div className="pointer-events-none absolute left-3 flex h-4 w-4 items-center justify-center text-slate-500">
+            {leftIcon}
+          </div>
         )}
-        
-        <div className="hk-input-container">
-          {leftIcon && (
-            <div className="hk-input-icon hk-input-icon--left">
-              {leftIcon}
-            </div>
-          )}
-          
-          <input
-            id={inputId}
-            className={inputClassName}
-            {...props}
-          />
-          
-          {rightIcon && (
-            <div className="hk-input-icon hk-input-icon--right">
-              {rightIcon}
-            </div>
-          )}
-        </div>
-        
-        {error && (
-          <span className="hk-input-error">{error}</span>
-        )}
-        
-        {helperText && !error && (
-          <span className="hk-input-helper">{helperText}</span>
+
+        <input
+          id={inputId}
+          className={inputClassName}
+          {...props}
+        />
+
+        {rightIcon && (
+          <div className="pointer-events-none absolute right-3 flex h-4 w-4 items-center justify-center text-slate-500">
+            {rightIcon}
+          </div>
         )}
       </div>
 
-      <style jsx>{`
-        .hk-input-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: var(--hk-spacing-sm);
-        }
+      {error && (
+        <span className="text-xs text-red-400">{error}</span>
+      )}
 
-        .hk-input-wrapper--full {
-          width: 100%;
-        }
-
-        .hk-input-label {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--hk-text-primary);
-        }
-
-        .hk-input-container {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .hk-input {
-          width: 100%;
-          padding: 12px 16px;
-          font-size: 1rem;
-          color: var(--hk-text-primary);
-          background: var(--hk-bg-primary);
-          border: 2px solid var(--hk-border-primary);
-          border-radius: var(--hk-radius-lg);
-          transition: var(--hk-transition);
-          outline: none;
-        }
-
-        .hk-input::placeholder {
-          color: var(--hk-text-tertiary);
-        }
-
-        .hk-input:hover:not(:disabled) {
-          border-color: var(--hk-primary);
-        }
-
-        .hk-input:focus {
-          border-color: var(--hk-primary);
-          box-shadow: 0 0 0 3px var(--hk-primary-light);
-        }
-
-        .hk-input:disabled {
-          background: var(--hk-bg-tertiary);
-          cursor: not-allowed;
-          opacity: 0.6;
-        }
-
-        .hk-input--error {
-          border-color: var(--hk-error);
-        }
-
-        .hk-input--error:focus {
-          box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-        }
-
-        .hk-input--has-left-icon {
-          padding-left: 40px;
-        }
-
-        .hk-input--has-right-icon {
-          padding-right: 40px;
-        }
-
-        .hk-input-icon {
-          position: absolute;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--hk-text-secondary);
-          pointer-events: none;
-        }
-
-        .hk-input-icon--left {
-          left: 12px;
-        }
-
-        .hk-input-icon--right {
-          right: 12px;
-        }
-
-        .hk-input-error {
-          font-size: 0.875rem;
-          color: var(--hk-error);
-        }
-
-        .hk-input-helper {
-          font-size: 0.875rem;
-          color: var(--hk-text-secondary);
-        }
-      `}</style>
-    </>
+      {helperText && !error && (
+        <span className="text-xs text-slate-400">{helperText}</span>
+      )}
+    </div>
   );
 }
 

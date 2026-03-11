@@ -1,3 +1,5 @@
+from typing import Optional
+
 from app.models.ai_plan_models import OptimizedPlanResponse, ScheduleItem
 from app.services.tour_service import TourService
 from app.api.kakao_api import KakaoAPI
@@ -6,6 +8,7 @@ import logging
 import asyncio
 from app.core.mongodb import get_database
 from app.models.place_models import PlaceNormalizer
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +78,7 @@ class LogisticsService:
         # 2. Day 간 숙소(숙박) 자동 추천 + 기본 숙소 추가
         await self._add_accommodations(plan, region=region)
 
-        # 3. 이동 거리/시간 계산
+        # 3. 이동 거리/시간 계산 (장소 간 거리 기반)
         for day_plan in plan.days:
             schedule = day_plan.schedule
             for i in range(len(schedule) - 1):
@@ -102,7 +105,16 @@ class LogisticsService:
                         current.travel_time_next_walk = f"약 {minutes_walk}분"
                     except Exception as e:
                         logger.warning(f"Distance calc failed: {e}")
-                        
+
+        # 4. Day별 타임라인 정렬 (머무는 시간 + 이동시간을 고려하여 다음 일정 시간이 말이 되도록 조정)
+        for day_plan in plan.days:
+            self._adjust_day_timeline_with_travel(day_plan)
+
+        # 5. (가능한 경우) 영업시간을 참고해 경고 메시지 추가
+        for day_plan in plan.days:
+            for item in day_plan.schedule:
+                self._annotate_with_opening_hours_warning(item)
+
         return plan
 
     def _get_stay_duration(self, place_type: str) -> str:
@@ -119,7 +131,188 @@ class LogisticsService:
                 return value
         return "1시간"
 
-    async def _add_accommodations(self, plan: OptimizedPlanResponse, region: str | None = None) -> None:
+    # --- Time & opening-hours helpers -------------------------------------------------
+
+    def _parse_time_to_minutes(self, time_str: Optional[str]) -> Optional[int]:
+        """
+        "HH:MM" 형태의 문자열을 분 단위 정수로 변환.
+        파싱 실패 시 None 반환.
+        """
+        if not time_str:
+            return None
+        try:
+            parts = time_str.strip().split(":")
+            if len(parts) != 2:
+                return None
+            hour = int(parts[0])
+            minute = int(parts[1])
+            return hour * 60 + minute
+        except Exception:
+            return None
+
+    def _format_minutes_to_time(self, minutes: int) -> str:
+        """
+        분 단위를 "HH:MM" 형식 문자열로 변환.
+        하루(24시간)를 넘어가도 단순히 24로 나눈 나머지를 사용.
+        """
+        minutes = max(0, minutes)
+        hour = (minutes // 60) % 24
+        minute = minutes % 60
+        return f"{hour:02d}:{minute:02d}"
+
+    def _parse_korean_duration_to_minutes(self, duration: Optional[str]) -> int:
+        """
+        "1시간 30분", "1시간", "30분" 같은 한글 체류시간 문자열을 분 단위로 변환.
+        인식 실패 시 기본값 60분 사용.
+        "숙박"은 8시간(480분)으로 가정.
+        """
+        if not duration:
+            return 60
+        s = duration.strip()
+        if "숙박" in s:
+            return 8 * 60
+
+        hours = 0
+        minutes = 0
+
+        m_hour = re.search(r"(\d+)\s*시간", s)
+        m_min = re.search(r"(\d+)\s*분", s)
+        if m_hour:
+            try:
+                hours = int(m_hour.group(1))
+            except ValueError:
+                hours = 0
+        if m_min:
+            try:
+                minutes = int(m_min.group(1))
+            except ValueError:
+                minutes = minutes
+
+        total = hours * 60 + minutes
+        if total <= 0:
+            return 60
+        return total
+
+    def _parse_travel_time_to_minutes(self, text: Optional[str]) -> int:
+        """
+        "약 90분 (차량)" / "약 20분" 같은 문자열에서 숫자 분(minute)을 추출.
+        실패 시 0분.
+        """
+        if not text:
+            return 0
+        m = re.search(r"(\d+)\s*분", text)
+        if not m:
+            return 0
+        try:
+            return int(m.group(1))
+        except ValueError:
+            return 0
+
+    def _adjust_day_timeline_with_travel(self, day_plan) -> None:
+        """
+        하루 단위로, 각 일정의 시작 시간을
+        - 사용자가 지정한 시간
+        - 이전 일정의 종료시간(머무는 시간) + 이동시간
+        중 '더 늦은 쪽'으로 맞추어, 논리적으로 맞는 타임라인을 만든다.
+        """
+        schedule: list[ScheduleItem] = day_plan.schedule
+        if not schedule:
+            return
+
+        prev_end_minutes: Optional[int] = None
+
+        for idx, item in enumerate(schedule):
+            # 1) 사용자가 준 시간 파싱 (없으면 이전 end 기준으로만 맞춘다)
+            specified_start = self._parse_time_to_minutes(item.time)
+
+            if prev_end_minutes is None:
+                # 첫 일정: 사용자가 지정한 시간이 있으면 그대로 사용, 없으면 09:00 기준
+                if specified_start is None:
+                    start_minutes = 9 * 60
+                else:
+                    start_minutes = specified_start
+            else:
+                # 이전 일정의 종료시각 + 이동시간
+                prev_item = schedule[idx - 1]
+                travel_minutes = self._parse_travel_time_to_minutes(
+                    getattr(prev_item, "travel_time_next_car", None)
+                    or getattr(prev_item, "travel_time_next", None)
+                )
+                min_start = prev_end_minutes + travel_minutes
+
+                if specified_start is None:
+                    start_minutes = min_start
+                else:
+                    # 지정 시간이 너무 이르면, 최소 도착 가능 시간으로 밀어준다
+                    start_minutes = max(specified_start, min_start)
+
+            # 아이템의 time을 보정된 값으로 업데이트
+            item.time = self._format_minutes_to_time(start_minutes)
+
+            # 이 일정의 종료 시각 = 시작 + 체류시간
+            stay_minutes = self._parse_korean_duration_to_minutes(
+                getattr(item, "stay_duration", None)
+            )
+            prev_end_minutes = start_minutes + stay_minutes
+
+    def _annotate_with_opening_hours_warning(self, item: ScheduleItem) -> None:
+        """
+        MongoDB에 저장된 Google opening_hours 정보를 참고해,
+        방문 시간이 폐점 이후일 가능성이 높으면 description에 경고 문구를 추가한다.
+
+        실제 요일 매칭까지는 하지 않고, weekday_text의 첫 번째 라인 시간대를 대표값으로 사용.
+        """
+        place_id = getattr(item, "place_id", None)
+        if not place_id:
+            return
+
+        try:
+            place_doc = self.db.places.find_one({"place_id": place_id})
+        except Exception:
+            return
+
+        if not place_doc:
+            return
+
+        opening = place_doc.get("google_opening_hours") or {}
+        weekday_text = opening.get("weekday_text") or []
+        if not weekday_text or not isinstance(weekday_text, list):
+            return
+
+        # 예: "월요일: 10:00 – 17:00" 형태에서 첫 번째 시간 구간만 추출
+        text_line = weekday_text[0]
+        m = re.search(r"(\d{1,2}:\d{2}).*?(\d{1,2}:\d{2})", text_line)
+        if not m:
+            return
+
+        try:
+            close_minutes = self._parse_time_to_minutes(m.group(2))
+        except Exception:
+            close_minutes = None
+
+        if close_minutes is None:
+            return
+
+        start_minutes = self._parse_time_to_minutes(getattr(item, "time", None))
+        if start_minutes is None:
+            return
+
+        stay_minutes = self._parse_korean_duration_to_minutes(
+            getattr(item, "stay_duration", None)
+        )
+        end_minutes = start_minutes + stay_minutes
+
+        # 종료 시간이 영업 종료 시간보다 늦으면 경고 문구 추가
+        if end_minutes > close_minutes:
+            warning = "[주의] 이 일정은 영업 종료 시간 이후까지 이어질 수 있습니다. 실제 영업시간을 다시 확인해 주세요."
+            desc = getattr(item, "description", "") or ""
+            if warning not in desc:
+                if desc:
+                    item.description = desc + "\n" + warning
+                else:
+                    item.description = warning
+
+    async def _add_accommodations(self, plan: OptimizedPlanResponse, region: Optional[str] = None) -> None:
         """
         각 날짜의 마지막 장소와 다음 날 첫 장소 사이에 위치한 숙소를 자동으로 추천하여
         Day별 일정 마지막에 '숙소' 타입 ScheduleItem을 추가한다.
@@ -283,7 +476,7 @@ class LogisticsService:
                 # Kakao 숙소를 Place로 변환하여 DB에 upsert + Google 정보 보강 시도
                 places_col = self.db.places
                 reco_items: list[dict] = []
-                default_place_id: str | None = None
+                default_place_id: Optional[str] = None
 
                 for idx, cand in enumerate(picked):
                     doc = cand["doc"]

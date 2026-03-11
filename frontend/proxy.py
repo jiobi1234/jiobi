@@ -108,9 +108,72 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         elif not os.path.exists(path):
             # Next.js trailingSlash: false → /ko/hk/plan/ai 요청 시 ai.html 서빙
             base = self.path.rstrip('/').split('?')[0]
+            segments = base.lstrip('/').split('/')
+            q = ('?' + self.path.split('?')[1]) if '?' in self.path else ''
+
+            # 동적 장소 상세 페이지(hk/[id]) fallback 처리
+            # - 정적 export에서는 id=0만 미리 렌더링됨 (예: /ko/hk/0/index.html)
+            # - /ko/hk/123456 처럼 "숫자 id"로 접근할 때만 /ko/hk/0 HTML을 대신 서빙
+            #   (fs, admin 등 문자열 경로는 건드리지 않기 위해 isdigit() 체크)
+            if len(segments) == 3 and segments[1] == 'hk' and segments[2].isdigit():
+                locale = segments[0]
+                template_base = f'/{locale}/hk/0'
+                template_dir = self.translate_path(template_base)
+                index_html = os.path.join(template_dir, 'index.html')
+
+                if os.path.exists(index_html):
+                    self.path = f'{template_base}/index.html' + q
+                    super().do_GET()
+                    return
+
+                template_html = self.translate_path(template_base + '.html')
+                if os.path.exists(template_html):
+                    self.path = template_base + '.html' + q
+                    super().do_GET()
+                    return
+
+            # 계획 상세 페이지(hk/plan/[id]) fallback 처리
+            # - 정적 export에서는 planId=0만 미리 렌더링됨 (예: /ko/hk/plan/0/index.html)
+            # - /ko/hk/plan/123 처럼 숫자 id로 접근할 때 /ko/hk/plan/0 HTML을 대신 서빙
+            if len(segments) == 4 and segments[1] == 'hk' and segments[2] == 'plan' and segments[3].isdigit():
+                locale = segments[0]
+                template_base = f'/{locale}/hk/plan/0'
+                template_dir = self.translate_path(template_base)
+                index_html = os.path.join(template_dir, 'index.html')
+
+                if os.path.exists(index_html):
+                    self.path = f'{template_base}/index.html' + q
+                    super().do_GET()
+                    return
+
+                template_html = self.translate_path(template_base + '.html')
+                if os.path.exists(template_html):
+                    self.path = template_base + '.html' + q
+                    super().do_GET()
+                    return
+
+            # 경로 보기 페이지(hk/plan/[id]/route) fallback 처리
+            # - 정적 export에서는 planId=0만 미리 렌더링됨 (예: /ko/hk/plan/0/route/index.html)
+            # - /ko/hk/plan/123/route 요청 시 /ko/hk/plan/0/route HTML을 대신 서빙
+            if len(segments) == 5 and segments[1] == 'hk' and segments[2] == 'plan' and segments[4] == 'route':
+                locale = segments[0]
+                template_base = f'/{locale}/hk/plan/0/route'
+                template_dir = self.translate_path(template_base)
+                index_html = os.path.join(template_dir, 'index.html')
+
+                if os.path.exists(index_html):
+                    self.path = f'{template_base}/index.html' + q
+                    super().do_GET()
+                    return
+
+                template_html = self.translate_path(template_base + '.html')
+                if os.path.exists(template_html):
+                    self.path = template_base + '.html' + q
+                    super().do_GET()
+                    return
+
             html_path = self.translate_path(base + '.html')
             if os.path.exists(html_path):
-                q = ('?' + self.path.split('?')[1]) if '?' in self.path else ''
                 self.path = base + '.html' + q
             else:
                 self.send_error(404, 'File not found')

@@ -11,7 +11,15 @@ from app.models.theme_models import (
     ThemesResponse,
 )
 from app.models.plan_models import PlanCreateRequest
-from app.models.route_models import RouteRequest, RouteResponse, RouteSummary, RouteVertex
+from app.models.route_models import (
+    RouteRequest,
+    RouteResponse,
+    RouteSummary,
+    RouteVertex,
+    RouteGuide,
+    RouteSection,
+    RouteFare,
+)
 from app.models.wishlist_models import (
     WishlistCreateRequest,
     WishlistListResponse,
@@ -365,83 +373,165 @@ async def get_route_for_day(request: RouteRequest):
     """
     Day 단위 길찾기 경로 조회 (투어/카카오 장소 혼합 지원)
     - 입력: 순서가 정해진 장소 목록 (points)
-    - 출력: 총 거리/시간 요약 + 지도 폴리라인 좌표
+    - 출력:
+      - 전체 거리/시간 요약
+      - 전체 폴리라인 좌표 (full_path/path)
+      - 1번→2번, 2번→3번 등 구간별 거리/시간/좌표/가이드
     """
     from app.api.kakao_api import KakaoAPI
 
     if not request.points or len(request.points) < 2:
         raise HTTPException(status_code=400, detail="최소 2개 이상의 장소가 필요합니다.")
 
-    # Kakao 모빌리티: 경유지 최대 5개 (총 7개 장소). 8개 이상이면 7개씩 끊어서 여러 번 호출 후 이어붙임
-    SEGMENT_SIZE = 7
-
-    def _extract_path_and_summary(directions: dict, origin_point, dest_point) -> tuple[list[RouteVertex], int, int]:
+    def _extract_route_info(
+        directions: dict,
+        origin_point,
+        dest_point,
+    ) -> tuple[list[RouteVertex], int, int, list[RouteGuide], Optional[int], Optional[RouteFare]]:
         routes = directions.get("routes") or []
         if not routes:
             raise HTTPException(status_code=502, detail="Kakao 길찾기 결과를 가져오지 못했습니다.")
-        first_route = routes[0]
+
+        first_route = routes[0] or {}
         summary_info = first_route.get("summary") or {}
-        distance = int(summary_info.get("distance", 0))
-        duration = int(summary_info.get("duration", 0))
+        distance = int(summary_info.get("distance", 0) or 0)
+        duration = int(summary_info.get("duration", 0) or 0)
+
+        # 요금 정보 (있을 때만 사용)
+        fare_info = summary_info.get("fare") or {}
+        fare: Optional[RouteFare] = None
+        taxi = fare_info.get("taxi")
+        toll = fare_info.get("toll")
+        if taxi is not None or toll is not None:
+            fare = RouteFare(
+                taxi=int(taxi) if taxi is not None else None,
+                toll=int(toll) if toll is not None else None,
+            )
+
         path_vertices: list[RouteVertex] = []
-        sections = first_route.get("sections") or []
-        for section in sections:
+        sections_raw = first_route.get("sections") or []
+        guides: list[RouteGuide] = []
+        traffic_level: Optional[int] = None
+
+        for section in sections_raw:
+            # 도로 좌표
             for road in section.get("roads") or []:
                 vertexes = road.get("vertexes") or []
                 for j in range(0, len(vertexes) - 1, 2):
                     x, y = float(vertexes[j]), float(vertexes[j + 1])
                     path_vertices.append(RouteVertex(latitude=y, longitude=x))
+
+            # 가이드(길안내) 정보
+            for g in section.get("guides") or []:
+                guides.append(
+                    RouteGuide(
+                        name=g.get("name"),
+                        description=g.get("description") or g.get("instructions"),
+                        distance=int(g.get("distance", 0) or 0)
+                        if g.get("distance") is not None
+                        else None,
+                    )
+                )
+
+            # 교통 정체 정도(있을 때만) - 가장 심한 수준을 사용
+            level = section.get("traffic_state") or section.get("traffic_level")
+            try:
+                if level is not None:
+                    level_int = int(level)
+                    traffic_level = max(traffic_level or 0, level_int)
+            except (TypeError, ValueError):
+                pass
+
+        # vertexes가 비어 있으면 단순 직선으로 대체
         if not path_vertices:
             path_vertices = [
                 RouteVertex(latitude=origin_point.latitude, longitude=origin_point.longitude),
                 RouteVertex(latitude=dest_point.latitude, longitude=dest_point.longitude),
             ]
-        return path_vertices, distance, duration
+
+        return path_vertices, distance, duration, guides, traffic_level, fare
 
     try:
         kakao = KakaoAPI()
         total_distance = 0
         total_duration = 0
+        total_taxi_fare = 0
+        total_toll_fare = 0
+        any_fare = False
+
         all_path: list[RouteVertex] = []
-        i = 0
+        sections: list[RouteSection] = []
 
-        while i < len(request.points):
-            end = min(i + SEGMENT_SIZE, len(request.points))
-            segment = request.points[i:end]
-            if len(segment) < 2:
-                break
+        points = request.points
 
-            origin_point = segment[0]
-            dest_point = segment[-1]
-            waypoint_points = segment[1:-1]
-            if len(waypoint_points) > 5:
-                waypoint_points = waypoint_points[:5]
+        for idx in range(len(points) - 1):
+            origin_point = points[idx]
+            dest_point = points[idx + 1]
 
             origin = (origin_point.longitude, origin_point.latitude)
             destination = (dest_point.longitude, dest_point.latitude)
-            waypoints = [(p.longitude, p.latitude) for p in waypoint_points] or None
 
-            directions = kakao.get_directions(origin=origin, destination=destination, waypoints=waypoints)
-            path_vertices, distance, duration = _extract_path_and_summary(directions, origin_point, dest_point)
+            directions = kakao.get_directions(origin=origin, destination=destination)
+            (
+                path_vertices,
+                distance,
+                duration,
+                guides,
+                traffic_level,
+                fare,
+            ) = _extract_route_info(directions, origin_point, dest_point)
 
             total_distance += distance
             total_duration += duration
-            if i == 0:
+
+            if fare:
+                any_fare = True
+                if fare.taxi is not None:
+                    total_taxi_fare += fare.taxi
+                if fare.toll is not None:
+                    total_toll_fare += fare.toll
+
+            if idx == 0:
                 all_path.extend(path_vertices)
             else:
-                all_path.extend(path_vertices[1:])  # 경계점 중복 제거
+                # 경계점 중복 제거
+                all_path.extend(path_vertices[1:])
 
-            i = end - 1
+            sections.append(
+                RouteSection(
+                    section_index=idx,
+                    from_index=idx,
+                    to_index=idx + 1,
+                    distance_meters=distance,
+                    duration_seconds=duration,
+                    path=path_vertices,
+                    guides=guides,
+                    traffic_level=traffic_level,
+                )
+            )
 
         if not all_path:
             all_path = [
-                RouteVertex(latitude=request.points[0].latitude, longitude=request.points[0].longitude),
-                RouteVertex(latitude=request.points[-1].latitude, longitude=request.points[-1].longitude),
+                RouteVertex(latitude=points[0].latitude, longitude=points[0].longitude),
+                RouteVertex(latitude=points[-1].latitude, longitude=points[-1].longitude),
             ]
 
+        summary_fare: Optional[RouteFare] = None
+        if any_fare:
+            summary_fare = RouteFare(
+                taxi=total_taxi_fare or None,
+                toll=total_toll_fare or None,
+            )
+
         return RouteResponse(
-            summary=RouteSummary(distance_meters=total_distance, duration_seconds=total_duration),
+            summary=RouteSummary(
+                distance_meters=total_distance,
+                duration_seconds=total_duration,
+                fare=summary_fare,
+            ),
             path=all_path,
+            full_path=all_path,
+            sections=sections or None,
         )
     except HTTPException:
         raise
@@ -454,7 +544,7 @@ async def get_route_for_day(request: RouteRequest):
         if "400" in err_msg or "Bad Request" in err_msg:
             raise HTTPException(
                 status_code=400,
-                detail="경로를 찾을 수 없습니다. 장소가 너무 멀리 떨어져 있거나, 해당 Day의 장소를 7개 이하로 줄여주세요.",
+                detail="경로를 찾을 수 없습니다. 장소가 너무 멀리 떨어져 있거나, Kakao 길찾기에서 지원하지 않는 조합입니다.",
             )
         raise HTTPException(status_code=500, detail=f"길찾기 요청 중 오류가 발생했습니다: {err_msg}")
 

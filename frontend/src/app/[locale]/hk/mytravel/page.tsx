@@ -8,7 +8,6 @@ import { KakaoMapScript, KakaoMap } from '../../../../components/hk/map';
 import { getStringParam } from '../../../../utils/typeGuards';
 import { useToast } from '../../../../components/hk/common/Toast';
 import apiClient, { type Plan } from '../../../../lib/api-client';
-import '../../../../styles/hk/mytravel.css';
 
 interface Trip {
   id: string;
@@ -187,167 +186,223 @@ function MyTravelPageContent() {
 
   return (
     <>
-      <div className="hk-mytravel-container">
-        <div className="hk-mytravel-header">
-          <h1 className="hk-mytravel-header-title">{t('title')}</h1>
-          <p className="hk-mytravel-header-description">{t('description')}</p>
-        </div>
+      <div className="w-full max-w-7xl mx-auto px-4 py-6 space-y-10 sm:py-8">
+          {/* 헤더 */}
+          <header className="text-center">
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              {t('title')}
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 sm:text-base">
+              {t('description')}
+            </p>
+          </header>
 
-        <div className="hk-mytravel-stats-section">
-          <div className="hk-mytravel-stat-card">
-            <div className="hk-mytravel-stat-icon">📍</div>
-            <div className="hk-mytravel-stat-label">{t('totalDestinations')}</div>
-            <div className="hk-mytravel-stat-value">{travelStats.total_destinations}{t('times')}</div>
-          </div>
-          <div className="hk-mytravel-stat-card">
-            <div className="hk-mytravel-stat-icon">✈️</div>
-            <div className="hk-mytravel-stat-label">{t('completedTrips')}</div>
-            <div className="hk-mytravel-stat-value">{travelStats.completed_trips}{t('times')}</div>
-          </div>
-          <div className="hk-mytravel-stat-card">
-            <div className="hk-mytravel-stat-icon">↗️</div>
-            <div className="hk-mytravel-stat-label">{t('sharedTrips')}</div>
-            <div className="hk-mytravel-stat-value">{travelStats.shared_trips}{t('times')}</div>
-          </div>
-        </div>
-
-        <div className="hk-mytravel-recent-section">
-          <div className="hk-mytravel-trips-header">
-            <div className="hk-mytravel-sort-dropdown">
-              <select 
-                id="sortSelect"
-                className="hk-mytravel-sort-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="latest">{t('sortLatest')}</option>
-                <option value="oldest">{t('sortOldest')}</option>
-                <option value="popular">{t('sortPopular')}</option>
-              </select>
+          {/* 통계 카드 */}
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="flex flex-col items-center justify-center px-4 py-4 bg-white border rounded-2xl shadow-sm border-slate-100">
+              <div className="mb-1 text-2xl">📍</div>
+              <div className="text-sm text-slate-500">{t('totalDestinations')}</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900">
+                {travelStats.total_destinations}
+                <span className="ml-1 text-xs text-slate-500">{t('times')}</span>
+              </div>
             </div>
-            <button
-              type="button"
-              className="hk-mytravel-view-all-button"
-              onClick={() => {
-                if (isExpanded) {
-                  setIsExpanded(false);
-                  setVisibleCount(Math.min(3, recentTrips.length));
-                  tripsContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                  setIsExpanded(true);
-                  setVisibleCount(recentTrips.length);
-                }
-              }}
-              disabled={recentTrips.length <= 3}
+            <div className="flex flex-col items-center justify-center px-4 py-4 bg-white border rounded-2xl shadow-sm border-slate-100">
+              <div className="mb-1 text-2xl">✈️</div>
+              <div className="text-sm text-slate-500">{t('completedTrips')}</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900">
+                {travelStats.completed_trips}
+                <span className="ml-1 text-xs text-slate-500">{t('times')}</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-center justify-center px-4 py-4 bg-white border rounded-2xl shadow-sm border-slate-100">
+              <div className="mb-1 text-2xl">↗️</div>
+              <div className="text-sm text-slate-500">{t('sharedTrips')}</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900">
+                {travelStats.shared_trips}
+                <span className="ml-1 text-xs text-slate-500">{t('times')}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* 최근 여행 카드 리스트 */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center gap-3">
+                <select
+                  id="sortSelect"
+                className="h-9 px-3 text-sm border rounded-xl border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/60"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="latest">{t('sortLatest')}</option>
+                  <option value="oldest">{t('sortOldest')}</option>
+                  <option value="popular">{t('sortPopular')}</option>
+                </select>
+                <button
+                  type="button"
+                  className="h-9 px-4 text-xs font-medium border rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={() => {
+                    if (isExpanded) {
+                      setIsExpanded(false);
+                      setVisibleCount(Math.min(3, recentTrips.length));
+                      tripsContainerRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      });
+                    } else {
+                      setIsExpanded(true);
+                      setVisibleCount(recentTrips.length);
+                    }
+                  }}
+                  disabled={recentTrips.length <= 3}
+                >
+                  {isExpanded ? '접기 ▲' : '모두 보기 ▼'}
+                </button>
+              </div>
+            </div>
+
+            <div
+              ref={tripsContainerRef}
+              className="grid grid-cols-1 gap-4 lg:grid-cols-3"
             >
-              {isExpanded ? '접기 ▲' : '모두 보기 ▼'}
-            </button>
-          </div>
-
-          <div
-            className="hk-mytravel-trips-container"
-            ref={tripsContainerRef}
-          >
-            {recentTrips.length > 0 ? (
-              recentTrips.slice(0, visibleCount).map((trip) => (
-                <div key={trip.id} className="hk-mytravel-trip-card">
-                  <div className="hk-mytravel-trip-image">
-                    {trip.image ? (
-                      <img src={trip.image} alt="여행 이미지" />
-                    ) : null}
-                  </div>
-                  <div className="hk-mytravel-trip-content">
-                    <div className="hk-mytravel-trip-title">{trip.title}</div>
-                    <div className="hk-mytravel-trip-dates">{trip.dates}</div>
-                    <div className="hk-mytravel-trip-hashtags">
-                      {trip.hashtags.map((tag, idx) => (
-                        <span key={idx} className="hk-mytravel-hashtag">{tag}</span>
-                      ))}
-                    </div>
-                    <div className="hk-mytravel-trip-stats">
-                      <span className="hk-mytravel-places-count">
-                        {t('placesCount')}: {trip.places_count}{t('places')}
-                      </span>
-                    </div>
-                    <div className="hk-mytravel-trip-actions">
-                      <button 
-                        className="hk-mytravel-plan-again-button" 
-                        onClick={() => handlePlanAgain(trip.id)}
-                      >
-                        {t('planAgain')}
-                      </button>
-                      <button
+              {recentTrips.length > 0 ? (
+                recentTrips.slice(0, visibleCount).map((trip) => (
+                  <div
+                    key={trip.id}
+                    className="flex flex-col gap-4 p-4 bg-white border rounded-2xl border-slate-100 shadow-sm sm:flex-row"
+                  >
+                    {trip.image && (
+                      <div className="w-full overflow-hidden rounded-xl sm:w-40 flex-shrink-0">
+                        <img
+                          src={trip.image}
+                          alt="여행 이미지"
+                          className="object-cover w-full h-32"
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-col flex-1 gap-2">
+                      <div>
+                        <div className="text-base font-semibold text-slate-900">
+                          {trip.title}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {trip.dates}
+                        </div>
+                      </div>
+                      {trip.hashtags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {trip.hashtags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                            className="px-2 py-0.5 text-[11px] rounded-xl bg-slate-100 text-slate-600"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-1 text-xs text-slate-600">
+                        {t('placesCount')}: {trip.places_count}
+                        {t('places')}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-xs font-medium rounded-xl bg-sky-50 text-sky-600 hover:bg-sky-100"
+                          onClick={() => handlePlanAgain(trip.id)}
+                        >
+                          {t('planAgain')}
+                        </button>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-xs font-medium border rounded-xl border-sky-500 text-sky-600 hover:bg-sky-50"
+                          onClick={() => router.push(`/${locale}/hk/plan/${trip.id}/route`)}
+                        >
+                          경로 보기
+                        </button>
+                        <button
                         type="button"
-                        className="hk-mytravel-route-view-button"
-                        onClick={() => router.push(`/${locale}/hk/plan/${trip.id}/route`)}
-                      >
-                        경로 보기
-                      </button>
-                      <button
-                        type="button"
-                        className="hk-mytravel-travel-mode-button"
-                        onClick={() => handleDeletePlan(trip.id)}
-                      >
-                        삭제
-                      </button>
+                        className="px-3 py-1.5 text-xs font-medium border rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50"
+                          onClick={() => handleDeletePlan(trip.id)}
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-40 text-sm text-slate-500 bg-slate-50 rounded-2xl">
+                  {t('noTrips')}
                 </div>
-              ))
-            ) : (
-              <div className="hk-mytravel-no-trips">{t('noTrips')}</div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          </section>
 
-        <div className="hk-mytravel-footprints-section">
-          <div className="hk-mytravel-footprints-title">{t('myFootprints')}</div>
-          <div className="hk-mytravel-map-container">
-            <KakaoMapScript />
-            <KakaoMap
-              center={{ lat: 37.5665, lng: 126.9780 }}
-              level={3}
-              markers={visitedPlaces.map((p) => ({
-                lat: p.lat,
-                lng: p.lng,
-                title: p.name,
-                description: p.description,
-              }))}
-              className="hk-mytravel-map"
-              style={{ height: '500px' }}
-            />
-          </div>
-        </div>
+          {/* 발자국 지도 */}
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
+              {t('myFootprints')}
+            </h2>
+            <div className="overflow-hidden bg-white border rounded-2xl border-slate-100 shadow-sm">
+              <KakaoMapScript />
+              <KakaoMap
+                center={{ lat: 37.5665, lng: 126.978 }}
+                level={3}
+                markers={visitedPlaces.map((p) => ({
+                  lat: p.lat,
+                  lng: p.lng,
+                  title: p.name,
+                  description: p.description,
+                }))}
+                className="w-full"
+                style={{ height: '420px' }}
+              />
+            </div>
+          </section>
       </div>
 
       {/* 수정 방법 선택 모달 */}
       {showEditModeModal && (
-        <div className="hk-mytravel-modal-overlay" onClick={() => setShowEditModeModal(false)}>
-          <div className="hk-mytravel-modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2 className="hk-mytravel-modal-title">수정 방법을 선택하세요</h2>
-            <div className="hk-mytravel-edit-options">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowEditModeModal(false)}
+        >
+          <div
+            className="w-full max-w-md p-6 bg-white rounded-2xl shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">
+              수정 방법을 선택하세요
+            </h2>
+            <div className="grid gap-3 mb-4 sm:grid-cols-2">
               <button
                 type="button"
-                className="hk-mytravel-edit-option"
+                className="flex flex-col items-start w-full px-4 py-3 text-left border rounded-xl border-slate-200 hover:border-sky-500 hover:bg-sky-50/40"
                 onClick={handleEditWithAI}
               >
-                <div className="hk-mytravel-edit-icon">🤖</div>
-                <div className="hk-mytravel-edit-title">AI로 수정하기</div>
-                <div className="hk-mytravel-edit-description">AI와 대화하며 계획을 수정합니다</div>
+                <div className="text-xl mb-1">🤖</div>
+                <div className="text-sm font-semibold text-slate-900">AI로 수정하기</div>
+                <div className="mt-1 text-xs text-slate-600">
+                  AI와 대화하며 계획을 수정합니다
+                </div>
               </button>
               <button
                 type="button"
-                className="hk-mytravel-edit-option"
+                className="flex flex-col items-start w-full px-4 py-3 text-left border rounded-xl border-slate-200 hover:border-sky-500 hover:bg-sky-50/40"
                 onClick={handleEditManually}
               >
-                <div className="hk-mytravel-edit-icon">✏️</div>
-                <div className="hk-mytravel-edit-title">직접 수정하기</div>
-                <div className="hk-mytravel-edit-description">직접 장소를 추가하고 수정합니다</div>
+                <div className="text-xl mb-1">✏️</div>
+                <div className="text-sm font-semibold text-slate-900">직접 수정하기</div>
+                <div className="mt-1 text-xs text-slate-600">
+                  직접 장소를 추가하고 수정합니다
+                </div>
               </button>
             </div>
             <button
               type="button"
-              className="hk-mytravel-modal-close"
+              className="w-full py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50"
               onClick={() => setShowEditModeModal(false)}
             >
               취소

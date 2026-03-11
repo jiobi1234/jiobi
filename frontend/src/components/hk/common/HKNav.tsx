@@ -26,71 +26,30 @@ export default function HKNav() {
   const t = useTranslations('hk.header');
 
   return (
-    <>
-      <nav className="hk-nav">
-        {navItems.map((item) => {
-          const fullHref = `/${locale}${item.href}`;
-          const isActive = pathname === fullHref || 
-            (item.href !== '/hk' && pathname.startsWith(fullHref));
-          
-          return (
-            <Link 
-              key={item.href}
-              href={fullHref} 
-              className={`hk-nav-link ${isActive ? 'active' : ''}`}
-            >
-              {t(item.labelKey)}
-            </Link>
-          );
-        })}
-      </nav>
+    <nav className="flex items-center gap-6 text-sm text-slate-300">
+      {navItems.map((item) => {
+        const fullHref = `/${locale}${item.href}`;
+        const isActive =
+          pathname === fullHref ||
+          (item.href !== '/hk' && pathname.startsWith(fullHref));
 
-      <style jsx>{`
-        .hk-nav {
-          display: flex;
-          gap: 30px;
-          align-items: center;
-        }
+        const baseClass =
+          'border-b-2 border-transparent pb-1 text-sm font-medium transition-colors';
+        const activeClass = isActive
+          ? 'text-sky-400 border-sky-400'
+          : 'text-slate-300 hover:text-slate-50';
 
-        .hk-nav-link {
-          color: white;
-          text-decoration: none;
-          font-weight: 500;
-          transition: var(--hk-transition);
-          position: relative;
-        }
-
-        .hk-nav-link:hover {
-          color: var(--hk-primary);
-        }
-
-        .hk-nav-link.active {
-          color: var(--hk-primary);
-        }
-
-        .hk-nav-link.active::after {
-          content: '';
-          position: absolute;
-          bottom: -5px;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: var(--hk-primary);
-        }
-
-        @media (max-width: 768px) {
-          .hk-nav {
-            gap: 20px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .hk-nav {
-            gap: 15px;
-          }
-        }
-      `}</style>
-    </>
+        return (
+          <Link
+            key={item.href}
+            href={fullHref}
+            className={`${baseClass} ${activeClass}`}
+          >
+            {t(item.labelKey)}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 

@@ -38,7 +38,7 @@ export interface UseKakaoMapReturn {
   clearMarkers: () => void;
   setCenter: (lat: number, lng: number) => void;
   setLevel: (level: number) => void;
-  setPolyline: (points: { lat: number; lng: number }[]) => void;
+  setPolyline: (points: { lat: number; lng: number }[], options?: { strokeColor?: string }) => void;
   /** 모든 포인트가 보이도록 지도 영역 조정 */
   setFitBounds: (points: { lat: number; lng: number }[], padding?: number) => void;
 }
@@ -169,7 +169,7 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
         };
 
         if (markerData.isMyLocation) {
-          // 내 위치: 파란 점 + 바깥 원 (네이버/카카오맵 스타일)
+          // 내 위치: 파란 점 + 바깥 원 (네이버/카카오맵 스타일 유지)
           const svg = `
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
               <circle cx="20" cy="20" r="18" fill="#1890ff" fill-opacity="0.2" stroke="#1890ff" stroke-width="2"/>
@@ -182,11 +182,12 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
           const image = new maps.MarkerImage(src, size, { offset });
           markerOptions.image = image;
         } else if (markerData.number != null) {
+          // 일정 순서 번호 마커: 카카오 도로번호 파란색과 확실히 다른 청록색 계열 사용
           const num = String(markerData.number);
           const svg = `
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-              <circle cx="16" cy="16" r="14" fill="#1890ff" stroke="#ffffff" stroke-width="2"/>
-              <text x="16" y="21" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold" font-family="sans-serif">${num}</text>
+              <circle cx="16" cy="16" r="14" fill="#13c2c2" stroke="#ffffff" stroke-width="2"/>
+              <text x="16" y="21" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="bold" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">${num}</text>
             </svg>
           `;
           const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -195,7 +196,8 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
           const image = new maps.MarkerImage(src, size, { offset });
           markerOptions.image = image;
         } else if (markerData.day != null) {
-          const colors = ['#ff4d4f', '#fa8c16', '#fadb14', '#52c41a', '#1890ff', '#722ed1'];
+          // Day별 마커 색상 팔레트 (번호 마커와도, 카카오 기본 파란색과도 겹치지 않도록 구성)
+          const colors = ['#ff4d4f', '#fa8c16', '#fadb14', '#52c41a', '#13c2c2', '#722ed1'];
           const color = colors[(Math.max(1, markerData.day) - 1) % colors.length];
           const svg = `
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">

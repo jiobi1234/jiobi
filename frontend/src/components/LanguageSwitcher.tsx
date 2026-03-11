@@ -26,13 +26,13 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-1 py-0.5 shadow-sm">
       <button
         onClick={() => switchLanguage('ko')}
-        className={`px-3 py-1 rounded transition-colors ${
+        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
           currentLocale === 'ko'
-            ? 'bg-[#007BFF] text-white'
-            : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+            ? 'bg-sky-500 text-white shadow-sm'
+            : 'bg-white text-slate-700 hover:bg-slate-50'
         }`}
         title={t('switchToKorean')}
       >
@@ -40,10 +40,10 @@ export default function LanguageSwitcher() {
       </button>
       <button
         onClick={() => switchLanguage('en')}
-        className={`px-3 py-1 rounded transition-colors ${
+        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
           currentLocale === 'en'
-            ? 'bg-[#007BFF] text-white'
-            : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+            ? 'bg-sky-500 text-white shadow-sm'
+            : 'bg-white text-slate-700 hover:bg-slate-50'
         }`}
         title={t('switchToEnglish')}
       >

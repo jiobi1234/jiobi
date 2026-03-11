@@ -5,8 +5,8 @@
 ## 1. SSH 접속 (Windows)
 
 ### 권장: 호스트 키 옵션 포함 (가비아 서버용)
-```powershell
-ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa jiobi@jiobi.kr
+```powershell``` ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa jiobi@jiobi.kr
+
 ```
 `no matching host key type found. Their offer: ssh-rsa` 오류가 나면 위처럼 옵션을 붙여서 접속합니다.
 

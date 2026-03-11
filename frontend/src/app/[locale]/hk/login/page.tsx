@@ -13,7 +13,6 @@ import { useApiError } from '../../../../hooks/common/useApiError';
 import { useFormValidation } from '../../../../hooks/common/useFormValidation';
 import HKBackButton from '../../../../components/hk/common/HKBackButton';
 import { getStringParam } from '../../../../utils/typeGuards';
-import '../../../../styles/hk/login.css';
 
 /**
  * 로그인 페이지 컨텐츠 컴포넌트
@@ -100,93 +99,123 @@ function LoginPageContent() {
   };
 
   return (
-    <>
-      <div className="hk-login-container">
-        <div className="hk-login-image-section">
-          <HKBackButton />
-        </div>
+    <div className="flex min-h-screen w-full bg-slate-50">
+      <div
+        className="hidden min-[481px]:flex flex-[0_0_60%] min-[481px]:max-md:flex-[0_0_40%] md:flex-[0_0_60%] bg-cover bg-center items-start p-5"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1547036967-23d11aacaee0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')",
+        }}
+      >
+        <HKBackButton />
+      </div>
 
-        <div className="hk-login-form-section">
-          <div className="hk-login-form-container">
-            <div className="hk-login-logo">JIOBI</div>
-            
-            <form onSubmit={handleSubmit}>
-              {(error || Object.keys(errors).length > 0) && (
-                <div className="hk-login-messages">
-                  {error && <div className="hk-login-alert hk-login-alert-error">{error}</div>}
-                  {errors.username && <div className="hk-login-alert hk-login-alert-error">{errors.username}</div>}
-                  {errors.password && <div className="hk-login-alert hk-login-alert-error">{errors.password}</div>}
-                </div>
-              )}
-              
-              <div className="hk-login-form-group">
-                <label className="hk-login-form-label" htmlFor="username">{t('usernameLabel')}</label>
-                <input 
-                  type="text" 
-                  className="hk-login-form-input" 
-                  id="username" 
-                  name="username" 
-                  placeholder={t('usernamePlaceholder')} 
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    if (errors.username) {
-                      setFieldTouched('username', true);
-                    }
-                  }}
-                  onBlur={() => setFieldTouched('username', true)}
-                  required 
-                />
+      <div className="flex flex-1 flex-col justify-center items-center p-6 md:p-10">
+        <div className="w-full max-w-xl bg-white rounded-2xl shadow-md p-6 sm:p-10">
+          <div className="text-3xl font-bold text-slate-800 text-center mb-8">JIOBI</div>
+
+          <form onSubmit={handleSubmit}>
+            {(error || Object.keys(errors).length > 0) && (
+              <div className="mb-5">
+                {error && (
+                  <div className="py-3 px-4 rounded-xl mb-2.5 font-medium bg-red-100 text-red-800 border border-red-200">
+                    {error}
+                  </div>
+                )}
+                {errors.username && (
+                  <div className="py-3 px-4 rounded-xl mb-2.5 font-medium bg-red-100 text-red-800 border border-red-200">
+                    {errors.username}
+                  </div>
+                )}
+                {errors.password && (
+                  <div className="py-3 px-4 rounded-xl mb-2.5 font-medium bg-red-100 text-red-800 border border-red-200">
+                    {errors.password}
+                  </div>
+                )}
               </div>
-              
-              <div className="hk-login-form-group">
-                <label className="hk-login-form-label" htmlFor="password">{t('passwordLabel')}</label>
-                <div className="hk-login-password-input-container">
-                  <input 
-                    type={showPassword ? 'text' : 'password'} 
-                    className="hk-login-form-input" 
-                    id="password" 
-                    name="password" 
-                    placeholder={t('passwordPlaceholder')} 
-                    autoComplete="current-password" 
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (errors.password) {
-                        setFieldTouched('password', true);
-                      }
-                    }}
-                    onBlur={() => setFieldTouched('password', true)}
-                    required 
-                  />
-                  <button
-                    type="button"
-                    className="hk-login-password-toggle"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                  >
-                    {showPassword ? '숨기기' : '보기'}
-                  </button>
-                </div>
-              </div>
-              
-              <button type="submit" className="hk-login-button" disabled={loading}>
-                {loading ? t('buttonLoading') : t('button')}
-              </button>
-            </form>
-            
-            <div className="hk-login-signup-link">
-              <Link href={`/${locale}/hk/signup`}>{t('signupLink')}</Link>
+            )}
+
+            <div className="mb-6 flex items-center gap-4">
+              <label className="text-slate-800 font-medium min-w-[80px]" htmlFor="username">
+                {t('usernameLabel')}
+              </label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder={t('usernamePlaceholder')}
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errors.username) setFieldTouched('username', true);
+                }}
+                onBlur={() => setFieldTouched('username', true)}
+                className="flex-1 py-3.5 border-0 border-b-2 border-slate-200 bg-transparent text-slate-800 focus:outline-none focus:border-slate-800"
+                required
+              />
             </div>
-            
-            <button className="hk-login-google-button" onClick={handleGoogleLogin}>
-              <div className="hk-login-google-icon">G</div>
-              {t('googleButton')}
+
+            <div className="mb-6 flex items-center gap-4">
+              <label className="text-slate-800 font-medium min-w-[80px]" htmlFor="password">
+                {t('passwordLabel')}
+              </label>
+              <div className="flex-1 relative flex items-center">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  placeholder={t('passwordPlaceholder')}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setFieldTouched('password', true);
+                  }}
+                  onBlur={() => setFieldTouched('password', true)}
+                  className="w-full py-3.5 border-0 border-b-2 border-slate-200 bg-transparent text-slate-800 focus:outline-none focus:border-slate-800 pr-20"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-0 py-1.5 pl-2.5 text-slate-500 text-sm hover:text-slate-900"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                >
+                  {showPassword ? '숨기기' : '보기'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-white text-slate-800 border border-slate-800 rounded-xl font-medium hover:bg-slate-800 hover:text-white transition mb-5 disabled:opacity-50"
+              disabled={loading}
+            >
+              {loading ? t('buttonLoading') : t('button')}
             </button>
+          </form>
+
+          <div className="text-center mb-8">
+            <Link
+              href={`/${locale}/hk/signup`}
+              className="text-slate-800 no-underline hover:underline"
+            >
+              {t('signupLink')}
+            </Link>
           </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full py-3.5 bg-white text-slate-800 border-0 rounded-xl font-medium flex items-center justify-center gap-2.5 hover:bg-slate-100 transition"
+          >
+            <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold">
+              G
+            </span>
+            {t('googleButton')}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

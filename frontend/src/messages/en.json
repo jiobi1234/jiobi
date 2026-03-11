@@ -71,6 +71,7 @@
       "friends": "Friends Travel"
     },
     "mypage": {
+      "loginRequired": "Login is required to use this feature.",
       "welcome": ", welcome!",
       "settingsTitle": "Settings",
       "emergencyTitle": "Emergency",
@@ -95,6 +96,13 @@
       "restaurantTips": "How to Order in Restaurants",
       "accommodationTips": "Check-in/Out Tips",
       "otherTips": "Other Local Tips"
+    },
+    "wishlist": {
+      "title": "Wishlist",
+      "description": "View all your saved places at a glance and use them in your travel plans.",
+      "goToPlanCreate": "Create New Travel Plan",
+      "loading": "Loading your wishlist...",
+      "empty": "There are no saved places in your wishlist."
     },
     "auth": {
       "login": {

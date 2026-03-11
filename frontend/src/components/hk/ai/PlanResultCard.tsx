@@ -285,9 +285,10 @@ export default function PlanResultCard({
 
       <div className="plan-actions">
         {onSave && (
-          <button
-            className="action-button save-button"
-            onClick={() => {
+          <>
+            <button
+              className="action-button save-button"
+              onClick={() => {
               // 날짜 계산 (현재 날짜 기준으로 시작)
               const today = new Date();
               const startDate = today.toISOString().split('T')[0];
@@ -318,17 +319,22 @@ export default function PlanResultCard({
                 });
               });
 
-              onSave({
-                title,
-                start_date: startDate,
-                end_date: endDateStr,
-                items,
-              });
-            }}
-            disabled={saving}
-          >
-            {saving ? '저장 중...' : '💾 저장하기'}
-          </button>
+                onSave({
+                  title,
+                  start_date: startDate,
+                  end_date: endDateStr,
+                  items,
+                });
+              }}
+              disabled={saving}
+            >
+              {saving ? '저장 중...' : '💾 저장하기'}
+            </button>
+            <p className="plan-save-hint">
+              💡 이 계획을 저장하면&nbsp;
+              <strong>‘최적 경로 보기’</strong> 기능을 사용할 수 있어요.
+            </p>
+          </>
         )}
         {onEdit && (
           <button className="action-button edit-button" onClick={onEdit}>
@@ -668,6 +674,14 @@ export default function PlanResultCard({
           margin-top: 24px;
           padding-top: 20px;
           border-top: 2px solid #f1f3f5;
+          flex-wrap: wrap;
+        }
+
+        .plan-save-hint {
+          flex-basis: 100%;
+          margin-top: 4px;
+          font-size: 0.85rem;
+          color: #555;
         }
 
         .action-button {

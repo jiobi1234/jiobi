@@ -13,7 +13,9 @@ import { useToast } from './common/Toast';
 interface PlaceCardProps {
   place: Place;
   category: string;
-  onClick?: (place: Place) => void; // 선택적 prop으로 변경
+  onClick?: (place: Place) => void;
+  /** true면 그리드 등에서 셀 전체 너비 사용 (기본: 고정 너비 카드) */
+  fillWidth?: boolean;
 }
 
 const getCategoryIcon = (category: string): string => {
@@ -26,7 +28,7 @@ const getCategoryIcon = (category: string): string => {
   }
 };
 
-function PlaceCard({ place, category, onClick }: PlaceCardProps) {
+function PlaceCard({ place, category, onClick, fillWidth }: PlaceCardProps) {
   const router = useRouter();
   const params = useParams();
   const locale = getStringParam(params, 'locale') || 'en';
@@ -114,158 +116,57 @@ function PlaceCard({ place, category, onClick }: PlaceCardProps) {
   }, [liked, wishlistLoading, place, placeId, router, locale, setWishlist, showToast]);
 
   return (
-    <>
-      <div 
-        className="travel-card"
-        onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleClick();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-        aria-label={`${title} - ${address}`}
-      >
-        <div className="travel-image">
-          {image ? (
-            <Image 
-              src={image} 
-              alt={title}
-              width={300}
-              height={200}
-              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-              unoptimized
-            />
-          ) : (
-            <div className="no-image">{icon}</div>
-          )}
-          {/* 위시리스트 하트 버튼 */}
-          <button
-            type="button"
-            className={`wishlist-button ${liked ? 'wishlist-button--active' : ''}`}
-            onClick={handleWishlistClick}
-            aria-label={liked ? '위시리스트에서 제거' : '위시리스트에 추가'}
-            aria-pressed={liked}
-            disabled={wishlistLoading}
-          >
-            {liked ? '♥' : '♡'}
-          </button>
-        </div>
-        <div className="travel-content">
-          <h3>{title}</h3>
-          <p>{address}</p>
-          {typeof googleRating === 'number' && typeof googleRatingsTotal === 'number' && (
-            <div className="travel-rating-row">
-              Google 평점 {googleRating.toFixed(1)}점 · 리뷰 {googleRatingsTotal}개 기준
-            </div>
-          )}
-        </div>
+    <div
+      className={`bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer ${fillWidth ? 'w-full min-w-0' : 'flex-shrink-0 w-[300px] sm:w-[280px] max-[480px]:w-[260px]'}`}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${title} - ${address}`}
+    >
+      <div className="relative h-[200px] overflow-hidden">
+        {image ? (
+          <Image
+            src={image}
+            alt={title}
+            width={300}
+            height={200}
+            className="w-full h-full object-cover"
+            unoptimized
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl bg-slate-100 text-slate-500">
+            {icon}
+          </div>
+        )}
+        <button
+          type="button"
+          className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center text-lg leading-none border-0 bg-white/90 hover:bg-white transition-all disabled:opacity-60 ${liked ? 'text-red-500' : ''}`}
+          onClick={handleWishlistClick}
+          aria-label={liked ? '위시리스트에서 제거' : '위시리스트에 추가'}
+          aria-pressed={liked}
+          disabled={wishlistLoading}
+        >
+          {liked ? '♥' : '♡'}
+        </button>
       </div>
-
-      <style jsx>{`
-        .travel-card {
-          flex: 0 0 300px;
-          background: white;
-          border-radius: 15px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          transition: transform 0.3s ease;
-          cursor: pointer;
-        }
-
-        .travel-card:hover {
-          transform: translateY(-5px);
-        }
-
-        .travel-image {
-          height: 200px;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .travel-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .no-image {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 3rem;
-          background: #f8f9fa;
-          color: #6c757d;
-        }
-
-        .wishlist-button {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          border: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(255, 255, 255, 0.8);
-          cursor: pointer;
-          font-size: 18px;
-          line-height: 1;
-          transition: all 0.2s ease;
-        }
-
-        .wishlist-button:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 1);
-          transform: scale(1.05);
-        }
-
-        .wishlist-button--active {
-          color: #e03131;
-        }
-
-        .travel-content {
-          padding: 20px;
-        }
-
-        .travel-content h3 {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #333;
-          margin-bottom: 8px;
-          line-height: 1.3;
-        }
-
-        .travel-content p {
-          color: #666;
-          font-size: 0.9rem;
-          line-height: 1.4;
-        }
-
-        .travel-rating-row {
-          margin-top: 8px;
-          font-size: 0.85rem;
-          color: #555;
-        }
-
-        @media (max-width: 768px) {
-          .travel-card {
-            flex: 0 0 280px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .travel-card {
-            flex: 0 0 260px;
-          }
-        }
-      `}</style>
-    </>
+      <div className="p-5">
+        <h3 className="text-[1.1rem] font-semibold text-slate-800 mb-2 leading-snug">
+          {title}
+        </h3>
+        <p className="text-slate-600 text-sm leading-snug">{address}</p>
+        {typeof googleRating === 'number' && typeof googleRatingsTotal === 'number' && (
+          <div className="mt-2 text-[0.85rem] text-slate-600">
+            Google 평점 {googleRating.toFixed(1)}점 · 리뷰 {googleRatingsTotal}개 기준
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -273,11 +174,11 @@ function PlaceCard({ place, category, onClick }: PlaceCardProps) {
 export default memo(PlaceCard, (prevProps, nextProps) => {
   const prevId = prevProps.place.place_id || prevProps.place.id;
   const nextId = nextProps.place.place_id || nextProps.place.id;
-  
   return (
     prevId === nextId &&
     prevProps.category === nextProps.category &&
-    prevProps.onClick === nextProps.onClick
+    prevProps.onClick === nextProps.onClick &&
+    prevProps.fillWidth === nextProps.fillWidth
   );
 });
 

@@ -28,96 +28,50 @@ export default function HotTravelSection({
   onPlaceClick, // 선택적 prop
 }: HotTravelSectionProps) {
   const t = useTranslations('hk');
-  
+
   return (
-    <>
-      <section className="hot-travel-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">{t('hotTravelTitle')}</h2>
-            <CategoryFilter 
-              selectedFilter={selectedFilter}
-              onFilterChange={onFilterChange}
-            />
-          </div>
-          
-          <div className="scroll-wrapper">
-            <HorizontalScrollSection>
-              {loading ? (
-                <LoadingState />
-              ) : error ? (
-                <ErrorState error={error} onRetry={onRetry} />
-              ) : places.length > 0 ? (
-                places.map((place, index) => {
-                  const key = place.place_id || place.id || `place-${index}`;
-                  return (
-                    <PlaceCard
-                      key={key}
-                      place={place}
-                      category={selectedFilter}
-                      onClick={onPlaceClick} // 선택적 prop 전달
-                    />
-                  );
-                })
-              ) : (
-                <div className="no-data">{t('noData')}</div>
-              )}
-            </HorizontalScrollSection>
-          </div>
+    <section className="py-12 bg-white">
+      <div className="max-w-6xl px-4 mx-auto">
+        <div className="flex flex-col items-center gap-3 mb-6 text-center">
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+            {t('hotTravelTitle')}
+          </h2>
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+            지금 많이 찾는 인기 여행지들을 모았어요.
+          </p>
+          <CategoryFilter
+            selectedFilter={selectedFilter}
+            onFilterChange={onFilterChange}
+          />
         </div>
-      </section>
 
-      <style jsx>{`
-        .hot-travel-section {
-          padding: 60px 0;
-          background: white;
-        }
-
-        .container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 20px;
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-          gap: 20px;
-        }
-
-        .section-title {
-          font-size: 2rem;
-          font-weight: bold;
-          color: #333;
-        }
-
-        .scroll-wrapper {
-          overflow: hidden;
-        }
-
-        .no-data {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 200px;
-          color: #999;
-          font-size: 1rem;
-          background: #f8f9fa;
-          border-radius: 15px;
-          margin: 20px 0;
-        }
-
-        @media (max-width: 768px) {
-          .section-header {
-            flex-direction: column;
-            gap: 20px;
-            align-items: flex-start;
-          }
-        }
-      `}</style>
-    </>
+        <div className="mt-2">
+          <HorizontalScrollSection>
+            {loading ? (
+              <LoadingState />
+            ) : error ? (
+              <ErrorState error={error} onRetry={onRetry} />
+            ) : places.length > 0 ? (
+              places.map((place, index) => {
+                const key = place.place_id || place.id || `place-${index}`;
+                return (
+                  <PlaceCard
+                    key={key}
+                    place={place}
+                    category={selectedFilter}
+                    onClick={onPlaceClick}
+                  />
+                );
+              })
+            ) : (
+              <div className="flex items-center justify-center h-40 text-sm text-slate-500 bg-slate-50 rounded-2xl">
+                {t('noData')}
+              </div>
+            )}
+          </HorizontalScrollSection>
+        </div>
+      </div>
+    </section>
   );
 }
 

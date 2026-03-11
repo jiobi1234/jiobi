@@ -7,7 +7,6 @@ import { getStringParam } from '../../../../../utils/typeGuards';
 import { useToast } from '../../../../../components/hk/common/Toast';
 import HKBackButton from '../../../../../components/hk/common/HKBackButton';
 import { useHKTheme } from '../../../../../hooks/hk/useHKTheme';
-import '../../../../../styles/hk/theme.css';
 
 /**
  * 테마 페이지 컨텐츠
@@ -63,65 +62,65 @@ export default function ThemePageContent() {
 
   if (loading) {
     return (
-      <div className="theme-page-container">
-        <div className="loading-state">테마를 불러오는 중...</div>
+      <div className="max-w-6xl mx-auto px-4 py-8 bg-slate-100 min-h-screen">
+        <div className="text-center py-16 text-lg text-slate-600">테마를 불러오는 중...</div>
       </div>
     );
   }
 
   if (error || !theme) {
     return (
-      <div className="hk-theme-page-container">
-        <div className="hk-theme-error-state">{error || '테마를 찾을 수 없습니다.'}</div>
+      <div className="max-w-6xl mx-auto px-4 py-8 bg-slate-100 min-h-screen">
+        <div className="text-center py-16 text-lg text-red-600">{error || '테마를 찾을 수 없습니다.'}</div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="hk-theme-back-button-container">
+      <div className="fixed top-5 left-5 z-[1000]">
         <HKBackButton variant="ghost" />
       </div>
 
-      <div className="hk-theme-page-container">
-        <div className="hk-theme-header">
-          <h1 className="hk-theme-title">{themeTitle}</h1>
+      <div className="max-w-6xl mx-auto px-4 sm:px-5 py-8 bg-slate-100 min-h-screen">
+        <div className="flex items-center justify-center mb-6 sm:mb-8 py-5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 m-0 text-center">{themeTitle}</h1>
         </div>
-        
-        <div className="hk-theme-places-container">
+
+        <div className="flex flex-col gap-5">
           {places.length > 0 ? (
             places.map((place, idx) => (
-              <div 
+              <div
                 key={idx}
-                className="hk-theme-place-card" 
+                className="bg-white rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row gap-4 sm:gap-5 hover:shadow-md hover:-translate-y-0.5 transition cursor-pointer"
                 onClick={() => handlePlaceClick(place.place_id)}
               >
-                <div className="hk-theme-place-image">
+                <div className="w-full sm:w-[120px] h-[200px] sm:h-[120px] rounded-xl bg-slate-100 flex items-center justify-center text-4xl shrink-0 overflow-hidden">
                   {place.image ? (
-                    <Image 
-                      src={place.image} 
+                    <Image
+                      src={place.image}
                       alt={place.title || '장소 이미지'}
                       width={120}
                       height={120}
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      className="w-full h-full object-cover rounded-xl"
                       unoptimized
                     />
                   ) : (
-                    <div>🏢</div>
+                    <span>🏢</span>
                   )}
                 </div>
-                
-                <div className="hk-theme-place-content">
+
+                <div className="flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="hk-theme-place-title">{place.title || '장소명 없음'}</h3>
+                    <h3 className="text-xl font-bold text-slate-800 m-0 mb-2">{place.title || '장소명 없음'}</h3>
                     {place.address && (
-                      <p className="hk-theme-place-address">{place.address}</p>
+                      <p className="text-slate-500 text-sm m-0 mb-3">{place.address}</p>
                     )}
                   </div>
-                  
-                  <div className="hk-theme-place-actions">
-                    <button 
-                      className="hk-theme-action-button" 
+                  <div className="flex gap-2.5 items-center justify-end sm:justify-end">
+                    <button
+                      type="button"
+                      className="w-10 h-10 rounded-xl border-2 border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         addToFavorites(place.title);
@@ -131,8 +130,9 @@ export default function ThemePageContent() {
                         <path d="M12 5v14M5 12h14"/>
                       </svg>
                     </button>
-                    <button 
-                      className="hk-theme-action-button" 
+                    <button
+                      type="button"
+                      className="w-10 h-10 rounded-xl border-2 border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleBookmark(place.title);
@@ -142,8 +142,9 @@ export default function ThemePageContent() {
                         <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l9 9z"/>
                       </svg>
                     </button>
-                    <button 
-                      className="hk-theme-action-button" 
+                    <button
+                      type="button"
+                      className="w-10 h-10 rounded-xl border-2 border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         sharePlace(place.title, place.place_id);
@@ -158,11 +159,15 @@ export default function ThemePageContent() {
               </div>
             ))
           ) : (
-            <div className="hk-theme-no-places">해당 테마의 장소가 없습니다.</div>
+            <div className="text-center py-10 text-slate-500 text-lg">해당 테마의 장소가 없습니다.</div>
           )}
         </div>
-        
-        <button className="hk-theme-floating-action" onClick={createTravelPlan}>
+
+        <button
+          type="button"
+          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 bg-slate-800 text-white border-0 rounded-xl py-3.5 px-5 flex items-center gap-2.5 cursor-pointer shadow-lg hover:bg-slate-600 hover:-translate-y-0.5 transition"
+          onClick={createTravelPlan}
+        >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 5v14M5 12h14"/>
           </svg>

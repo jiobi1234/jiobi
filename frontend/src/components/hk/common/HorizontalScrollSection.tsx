@@ -24,63 +24,21 @@ export default function HorizontalScrollSection({
   useHorizontalScroll(enableHorizontalWheel ? [scrollRef] : []);
 
   return (
-    <>
-      <div className={`horizontal-scroll-section ${className}`}>
-        {title && (
-          <h2 className="section-title">{title}</h2>
-        )}
-        <div className="scroll-container">
-          <div className="scroll-content" ref={scrollRef}>
-            {children}
-          </div>
+    <section className={className}>
+      {title && (
+        <h2 className="mb-6 text-lg font-semibold tracking-tight text-slate-100 sm:text-xl">
+          {title}
+        </h2>
+      )}
+      <div className="flex overflow-x-auto overflow-y-hidden pb-2">
+        <div
+          ref={scrollRef}
+          className="inline-flex gap-5 py-3 [scrollbar-color:theme(colors.slate.600)_transparent] [scrollbar-width:thin]"
+        >
+          {children}
         </div>
       </div>
-
-      <style jsx>{`
-        .horizontal-scroll-section {
-          padding: 0;
-        }
-
-        .section-title {
-          font-size: 2rem;
-          font-weight: bold;
-          color: #333;
-          margin-bottom: 30px;
-        }
-
-        .scroll-container {
-          overflow: hidden;
-        }
-
-        .scroll-content {
-          display: flex;
-          gap: 20px;
-          overflow-x: auto;
-          padding: 20px 0;
-          scroll-behavior: smooth;
-        }
-
-        .scroll-content::-webkit-scrollbar {
-          height: 8px;
-        }
-
-        .scroll-content::-webkit-scrollbar-track {
-          background: #e9ecef;
-          border-radius: 4px;
-        }
-
-        .scroll-content::-webkit-scrollbar-thumb {
-          background: #0064ff;
-          border-radius: 4px;
-        }
-
-        @media (max-width: 768px) {
-          .section-title {
-            font-size: 1.5rem;
-          }
-        }
-      `}</style>
-    </>
+    </section>
   );
 }
 

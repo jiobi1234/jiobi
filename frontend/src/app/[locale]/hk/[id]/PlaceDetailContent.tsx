@@ -31,7 +31,6 @@ import {
   getPlaceCheckouttime
 } from '../../../../utils/placeUtils';
 import { getStringParam } from '../../../../utils/typeGuards';
-import '../../../../styles/hk/place-detail.css';
 
 /**
  * 장소 상세 페이지 컨텐츠 컴포넌트
@@ -41,7 +40,8 @@ export default function PlaceDetailPageContent() {
   const router = useRouter();
   const params = useParams();
   const locale = useLocale();
-  const placeId = getStringParam(params, 'id');
+  // 정적 export + hk/0 템플릿 환경에서 실제 URL의 id를 한 번 더 파싱해 사용
+  const [placeId, setPlaceId] = useState<string | null>(null);
   const { navigationHistory, setNavigationHistory, getPlaceFromCache } = useHKContext();
   
   const [place, setPlace] = useState<Place | null>(null);
@@ -55,6 +55,21 @@ export default function PlaceDetailPageContent() {
   const googlePhotos = place ? (place as any).google_photos as { url: string }[] | undefined : undefined;
   const googleOpeningHours = place ? (place as any).google_opening_hours as any | undefined : undefined;
   const googleTypes = place ? (place as any).google_types as string[] | undefined : undefined;
+
+  // 브라우저 URL과 동적 파라미터에서 최종 place_id 결정 (최초 1회)
+  useEffect(() => {
+    let resolvedId: string | null = getStringParam(params, 'id');
+
+    if (typeof window !== 'undefined') {
+      const segments = window.location.pathname.split('/').filter(Boolean);
+      const last = segments[segments.length - 1];
+      if (last) {
+        resolvedId = last;
+      }
+    }
+
+    setPlaceId(resolvedId);
+  }, [params]);
 
   useEffect(() => {
     const loadPlaceDetail = async () => {
@@ -91,7 +106,7 @@ export default function PlaceDetailPageContent() {
     };
 
     loadPlaceDetail();
-  }, [placeId, getPlaceFromCache]);
+  }, [placeId, getPlaceFromCache, clearError, handleError]);
 
   const handleBack = () => {
     // 이전 페이지로 돌아갈 때 상태 복원
@@ -104,7 +119,7 @@ export default function PlaceDetailPageContent() {
 
   if (loading) {
     return (
-      <div className="hk-place-container">
+      <div className="max-w-5xl px-4 py-10 mx-auto">
         <LoadingState />
       </div>
     );
@@ -112,7 +127,7 @@ export default function PlaceDetailPageContent() {
 
   if (error) {
     return (
-      <div className="hk-place-container">
+      <div className="max-w-5xl px-4 py-10 mx-auto">
         <ErrorState 
           error={error} 
           onRetry={() => window.location.reload()} 
@@ -123,7 +138,7 @@ export default function PlaceDetailPageContent() {
 
   if (!place) {
     return (
-      <div className="hk-place-container">
+      <div className="max-w-5xl px-4 py-10 mx-auto">
         <ErrorState 
           error="장소 정보를 찾을 수 없습니다." 
           onRetry={handleBack} 
@@ -168,298 +183,358 @@ export default function PlaceDetailPageContent() {
 
   return (
     <>
-      <div className="hk-place-container">
-          <HKBackButton variant="ghost" size="md">
-            ← 돌아가기
-          </HKBackButton>
+      <div className="max-w-5xl px-4 py-6 mx-auto space-y-6 sm:py-8">
+        <HKBackButton variant="ghost" size="md">
+          ← 돌아가기
+        </HKBackButton>
 
-          <div className="hk-place-detail">
-            {/* 이미지 섹션 - Google Photos 우선, 없으면 기존 이미지/아이콘 */}
-            <div className="hk-place-image">
-              {googlePhotos && googlePhotos.length > 0 ? (
-                <img
-                  src={googlePhotos[0].url}
-                  alt={title}
-                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                />
-              ) : image ? (
-                <img
-                  src={image}
-                  alt={title}
-                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                />
-              ) : (
-                <div className="hk-place-image-placeholder">
-                  <div className="hk-place-image-icon">{getCategoryIcon(category)}</div>
-                  <div className="hk-place-image-text">이미지 없음</div>
+        <div className="overflow-hidden bg-white border rounded-2xl border-slate-100 shadow-sm">
+          {/* 이미지 섹션 */}
+          <div className="w-full h-56 overflow-hidden bg-slate-100 sm:h-72">
+            {googlePhotos && googlePhotos.length > 0 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={googlePhotos[0].url}
+                alt={title}
+                className="object-cover w-full h-full"
+              />
+            ) : image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={image}
+                alt={title}
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center w-full h-full gap-2 text-slate-400">
+                <div className="text-4xl">{getCategoryIcon(category)}</div>
+                <div className="text-xs">이미지 없음</div>
+              </div>
+            )}
+          </div>
+
+          {/* 본문 정보 */}
+          <div className="px-4 py-5 space-y-5 sm:px-6">
+            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
+              {title}
+            </h1>
+
+            <div className="space-y-4 text-sm">
+              {/* 유형 태그 */}
+              {googleTypes && googleTypes.length > 0 && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🏷️</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      유형
+                    </div>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                      {googleTypes.map((t, idx) => (
+                        <span
+                          key={idx}
+                            className="px-2 py-0.5 text-[11px] rounded-xl bg-slate-100 text-slate-700"
+                        >
+                          {t.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 주소 */}
+              {(addr1 || address) && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">📍</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      주소
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800 space-y-0.5">
+                      {addr1 ? (
+                        <>
+                          <div>{addr1}</div>
+                          {addr2 && (
+                            <div className="text-xs text-slate-500">{addr2}</div>
+                          )}
+                        </>
+                      ) : (
+                        <div>{address}</div>
+                      )}
+                      {zipcode && (
+                        <div className="text-xs text-slate-500">({zipcode})</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 전화번호 */}
+              {tel && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">📞</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      전화번호
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">{tel}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 문의처 */}
+              {infocenter && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">ℹ️</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      문의처
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">
+                      {infocenter}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 영업시간 (Google) */}
+              {googleOpeningHours?.weekday_text && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🕒</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      영업시간 (Google 기준)
+                    </div>
+                    <div className="mt-1 space-y-0.5 text-xs text-slate-700">
+                      {googleOpeningHours.weekday_text.map(
+                        (line: string, idx: number) => (
+                          <div key={idx}>{line}</div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 이용시간 */}
+              {usetime && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🕐</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      이용시간
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">{usetime}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 휴무일 */}
+              {restdate && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🚫</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      휴무일
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">{restdate}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 주차 */}
+              {parking && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🅿️</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      주차
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">{parking}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 카카오 지도 */}
+              {kakaoUrl && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🗺️</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      카카오 지도
+                    </div>
+                    <a
+                      href={kakaoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex mt-1 text-xs font-medium text-sky-600 hover:text-sky-700"
+                    >
+                      카카오 지도에서 자세히 보기
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* 홈페이지 */}
+              {homepage && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🌐</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      홈페이지
+                    </div>
+                    <a
+                      href={homepage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex mt-1 text-xs font-medium text-sky-600 hover:text-sky-700"
+                    >
+                      {(() => {
+                        try {
+                          return homepage.startsWith('http')
+                            ? new URL(homepage).hostname
+                            : homepage;
+                        } catch {
+                          return homepage;
+                        }
+                      })()}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* 대표 메뉴 */}
+              {firstmenu && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🍽️</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      대표 메뉴
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">
+                      {firstmenu}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 취급 메뉴 */}
+              {treatmenu && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">📋</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      취급 메뉴
+                    </div>
+                    <div className="mt-1 text-sm whitespace-pre-line text-slate-800">
+                      {treatmenu}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 체크인 / 체크아웃 */}
+              {checkintime && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🔑</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      체크인
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">
+                      {checkintime}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {checkouttime && (
+                <div className="flex gap-3">
+                  <span className="mt-0.5 text-lg">🚪</span>
+                  <div className="flex-1">
+                    <div className="text-xs font-semibold text-slate-500">
+                      체크아웃
+                    </div>
+                    <div className="mt-1 text-sm text-slate-800">
+                      {checkouttime}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="hk-place-info">
-              <h1 className="hk-place-title">{title}</h1>
-              
-              <div className="hk-place-info-section">
-                {/* 유형 태그 (Google types) */}
-                {googleTypes && googleTypes.length > 0 && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🏷️</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">유형</span>
-                      <div className="hk-place-types">
-                        {googleTypes.map((t, idx) => (
-                          <span key={idx} className="hk-place-type-chip">
-                            {t.replace(/_/g, ' ')}
+            {/* 장소 개요 */}
+            {description && (
+              <div className="pt-4 mt-2 border-t border-slate-100">
+                <h2 className="mb-1 text-sm font-semibold text-slate-900">
+                  장소 개요
+                </h2>
+                <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-line">
+                  {description}
+                </p>
+              </div>
+            )}
+
+            {/* Google 리뷰 */}
+            {googleReviews && googleReviews.length > 0 && (
+              <div className="pt-4 mt-2 border-t border-slate-100">
+                <h2 className="mb-1 text-sm font-semibold text-slate-900">
+                  Google 리뷰
+                </h2>
+                {typeof googleRating === 'number' &&
+                  typeof googleRatingsTotal === 'number' && (
+                    <div className="mb-2 text-xs text-slate-600">
+                      Google 평점 {googleRating.toFixed(1)}점 · 리뷰{' '}
+                      {googleRatingsTotal}개 기준
+                    </div>
+                  )}
+                <div className="space-y-2">
+                  {googleReviews.slice(0, 5).map((rev, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 border rounded-xl border-slate-200 bg-slate-50"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-slate-900">
+                          {rev.author_name || '익명 사용자'}
+                        </span>
+                        {typeof rev.rating === 'number' && (
+                          <span className="text-xs text-amber-500">
+                            ⭐ {rev.rating.toFixed(1)}
                           </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 주소 정보 */}
-                {(addr1 || address) && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-address-icon">📍</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">주소</span>
-                      <div className="hk-place-address-details">
-                        {addr1 ? (
-                          <>
-                            <span className="hk-place-address-main">{addr1}</span>
-                            {addr2 && <span className="hk-place-address-sub">{addr2}</span>}
-                          </>
-                        ) : (
-                          <span className="hk-place-address-main">{address}</span>
                         )}
-                        {zipcode && <span className="hk-place-address-sub">({zipcode})</span>}
                       </div>
+                      {rev.relative_time_description && (
+                        <div className="mb-1 text-[11px] text-slate-500">
+                          {rev.relative_time_description}
+                        </div>
+                      )}
+                      {rev.text && (
+                        <div className="text-xs leading-relaxed text-slate-700">
+                          {rev.text}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-
-                {/* 전화번호 */}
-                {tel && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">📞</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">전화번호</span>
-                      <span className="hk-place-info-value">{tel}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 문의처 */}
-                {infocenter && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">ℹ️</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">문의처</span>
-                      <span className="hk-place-info-value">{infocenter}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 영업시간 (Google 기준) */}
-                {googleOpeningHours?.weekday_text && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🕒</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">영업시간 (Google 기준)</span>
-                      <div className="hk-place-opening-hours">
-                        {googleOpeningHours.weekday_text.map((line: string, idx: number) => (
-                          <div key={idx} className="hk-place-opening-line">
-                            {line}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 이용시간 (공공데이터) */}
-                {usetime && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🕐</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">이용시간</span>
-                      <span className="hk-place-info-value">{usetime}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 휴무일 */}
-                {restdate && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🚫</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">휴무일</span>
-                      <span className="hk-place-info-value">{restdate}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 주차 정보 */}
-                {parking && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🅿️</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">주차</span>
-                      <span className="hk-place-info-value">{parking}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 카카오 지도 링크 */}
-                {kakaoUrl && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🗺️</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">카카오 지도</span>
-                      <a
-                        href={kakaoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hk-place-info-link"
-                      >
-                        카카오 지도에서 자세히 보기
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* 홈페이지 */}
-                {homepage && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🌐</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">홈페이지</span>
-                      <a 
-                        href={homepage} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="hk-place-info-link"
-                      >
-                        {(() => {
-                          try {
-                            return homepage.startsWith('http') ? new URL(homepage).hostname : homepage;
-                          } catch {
-                            return homepage;
-                          }
-                        })()}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* 대표 메뉴 (음식점) */}
-                {firstmenu && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🍽️</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">대표 메뉴</span>
-                      <span className="hk-place-info-value">{firstmenu}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 취급 메뉴 (음식점) */}
-                {treatmenu && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">📋</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">취급 메뉴</span>
-                      <span className="hk-place-info-value">{treatmenu}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 체크인 시간 (숙박) */}
-                {checkintime && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🔑</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">체크인</span>
-                      <span className="hk-place-info-value">{checkintime}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 체크아웃 시간 (숙박) */}
-                {checkouttime && (
-                  <div className="hk-place-info-item">
-                    <span className="hk-place-info-icon">🚪</span>
-                    <div className="hk-place-info-content">
-                      <span className="hk-place-info-label">체크아웃</span>
-                      <span className="hk-place-info-value">{checkouttime}</span>
-                    </div>
+                  ))}
+                </div>
+                {place.google_place_id && (
+                  <div className="mt-2">
+                    <a
+                      href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(
+                        place.google_place_id
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex text-xs font-medium text-sky-600 hover:text-sky-700"
+                    >
+                      Google에서 전체 리뷰 보기
+                    </a>
                   </div>
                 )}
               </div>
-
-              {/* 장소 개요 - 있으면 표시 */}
-              {description && (
-                <div className="hk-place-description">
-                  <h2>장소 개요</h2>
-                  <p>{description}</p>
-                </div>
-              )}
-
-              {/* Google 리뷰 (있을 경우) */}
-              {googleReviews && googleReviews.length > 0 && (
-                <div className="hk-place-description hk-place-google-reviews">
-                  <h2>Google 리뷰</h2>
-                  {typeof googleRating === 'number' && typeof googleRatingsTotal === 'number' && (
-                    <div className="hk-place-rating-inline">
-                      Google 평점 {googleRating.toFixed(1)}점 · 리뷰 {googleRatingsTotal}개 기준
-                    </div>
-                  )}
-                  <div className="hk-place-reviews-list">
-                    {googleReviews.slice(0, 5).map((rev, idx) => (
-                      <div key={idx} className="hk-place-review-card">
-                        <div className="hk-place-review-header">
-                          <span className="hk-place-review-author">
-                            {rev.author_name || '익명 사용자'}
-                          </span>
-                          {typeof rev.rating === 'number' && (
-                            <span className="hk-place-review-rating">
-                              ⭐ {rev.rating.toFixed(1)}
-                            </span>
-                          )}
-                        </div>
-                        {rev.relative_time_description && (
-                          <div className="hk-place-review-time">
-                            {rev.relative_time_description}
-                          </div>
-                        )}
-                        {rev.text && (
-                          <div className="hk-place-review-text">
-                            {rev.text}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {place.google_place_id && (
-                    <div className="hk-place-review-more">
-                      <a
-                        href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(
-                          place.google_place_id
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hk-place-review-more-link"
-                      >
-                        Google에서 전체 리뷰 보기
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
+            )}
           </div>
         </div>
+      </div>
     </>
   );
 }

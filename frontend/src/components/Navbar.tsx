@@ -35,21 +35,44 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-[#373e56] text-white py-4">
-      <div className="max-w-6xl mx-auto px-4 flex items-center">
+    <header className="border-b border-slate-200 bg-white text-slate-900">
+      <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
         {/* 로고 */}
         <div className="flex items-center">
-          <Link href={`/${locale}`} className="text-2xl font-bold hover:text-[#007BFF] transition-colors">
+          <Link
+            href={`/${locale}`}
+            className="text-2xl font-bold tracking-tight text-slate-900 transition-colors hover:text-sky-600"
+          >
             jiobi
           </Link>
         </div>
         
         {/* 네비게이션 (중앙) */}
-        <nav className="flex items-center mx-auto" style={{ gap: '144px' }}>
-          <Link href={`/${locale}/util`} className="hover:text-[#007BFF] transition-colors">{t('util')}</Link>
-          <Link href={`/${locale}/games`} className="hover:text-[#007BFF] transition-colors">{t('games')}</Link>
-          <Link href={`/${locale}/blog`} className="hover:text-[#007BFF] transition-colors">{t('blog')}</Link>
-          <Link href={`/${locale}/hk`} className="hover:text-[#007BFF] transition-colors">{t('hk')}</Link>
+        <nav className="mx-auto flex items-center gap-10 text-sm font-medium text-slate-600">
+          <Link
+            href={`/${locale}/util`}
+            className="transition-colors hover:text-sky-600"
+          >
+            {t('util')}
+          </Link>
+          <Link
+            href={`/${locale}/games`}
+            className="transition-colors hover:text-sky-600"
+          >
+            {t('games')}
+          </Link>
+          <Link
+            href={`/${locale}/blog`}
+            className="transition-colors hover:text-sky-600"
+          >
+            {t('blog')}
+          </Link>
+          <Link
+            href={`/${locale}/hk`}
+            className="transition-colors hover:text-sky-600"
+          >
+            {t('hk')}
+          </Link>
         </nav>
         
         {/* 언어 전환 버튼 */}

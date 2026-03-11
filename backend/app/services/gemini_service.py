@@ -119,16 +119,17 @@ class GeminiService:
             
             prompt = f"""
         You are a strict local travel expert. Modify the existing travel plan for {region} ({duration}) based on the user's edit request.
-
+        Assume the traveler mainly uses public transport (subway, bus) rather than a private car.
+        
         Current Plan:
         {existing_plan_str}
-
+        
         User's Edit Request:
         {edit_request}
-
+        
         Candidate Places (available for use):
         {candidates_str}
-
+        
         Requirements:
         1. Keep the structure similar to the existing plan unless the edit request requires major changes.
         2. Apply the user's edit request while maintaining logical flow.
@@ -136,9 +137,14 @@ class GeminiService:
         4. Distribute places logically across the days (Day 1, Day 2...).
         5. Ensure meal times (Lunch ~12:00, Dinner ~18:00) are assigned to '음식점' type places.
         6. Place '숙소' at the end of each day.
-        7. Provide a creative title for the trip (can be same or modified).
-        8. Response PROPER JSON format only.
-
+        7. When assigning times, keep them realistic so that the stay duration at each place plus the travel time to the next place does not cause overlaps or impossible schedules.
+        8. Strongly avoid "ping-pong" routes on the same day (for example, traveling about 1 hour in one direction and then about 1 hour back to a previous area by public transport).
+        9. Try to keep each day's route roughly moving in one direction instead of frequently jumping between far districts; group nearby places on the same day.
+        10. Minimize total travel time per day for a public-transport user (aim roughly for 1–2 hours of travel per day, and avoid plans that require much longer).
+        11. When possible, try to keep visits to places within their typical opening hours (for example, avoid scheduling visits late at night for places that normally close around 17:00).
+        12. Provide a creative title for the trip (can be same or modified).
+        13. Response PROPER JSON format only.
+        
         Expected JSON Structure:
         {{
             "title": "Creative Trip Title",
@@ -161,18 +167,24 @@ class GeminiService:
             # New plan mode
             prompt = f"""
         You are a strict local travel expert. Create an optimized travel schedule for {region} ({duration}) using the provided candidate places.
-
+        Assume the traveler mainly uses public transport (subway, bus) rather than a private car.
+        
         Candidate Places:
         {candidates_str}
-
+        
         Requirements:
         1. Build the route around anchor stores (must-visit landmarks or famous spots in the area); do not simply choose the nearest place. Prioritize quality and reputation over proximity.
         2. Distribute places logically across the days (Day 1, Day 2...).
         3. Ensure meal times (Lunch ~12:00, Dinner ~18:00) are assigned to '음식점' type places.
         4. Place '숙소' at the end of each day.
-        5. Provide a creative title for the trip.
-        6. Response PROPER JSON format only.
-
+        5. When assigning times, keep them realistic so that the stay duration at each place plus the travel time to the next place does not cause overlaps or impossible schedules.
+        6. Strongly avoid "ping-pong" routes on the same day (for example, traveling about 1 hour in one direction and then about 1 hour back to a previous area by public transport).
+        7. Try to keep each day's route roughly moving in one direction instead of frequently jumping between far districts; group nearby places on the same day.
+        8. Minimize total travel time per day for a public-transport user (aim roughly for 1–2 hours of travel per day, and avoid plans that require much longer).
+        9. When possible, try to keep visits to places within their typical opening hours (for example, avoid scheduling visits late at night for places that normally close around 17:00).
+        10. Provide a creative title for the trip.
+        11. Response PROPER JSON format only.
+        
         Expected JSON Structure:
         {{
             "title": "Creative Trip Title",

@@ -103,8 +103,8 @@ export default function HKSearchBar({
           align-items: center;
           background-color: white;
           border-radius: var(--hk-radius-xl);
-          padding: 8px 15px;
-          gap: 10px;
+          padding: 10px 18px;
+          gap: 12px;
           flex: 1;
         }
 
@@ -157,7 +157,7 @@ export default function HKSearchBar({
 
         @media (max-width: 768px) {
           .hk-search-bar {
-            padding: 6px 12px;
+            padding: 8px 14px;
           }
         }
       `}</style>

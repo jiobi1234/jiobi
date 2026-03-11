@@ -15,88 +15,37 @@ function ThemeCard({ emoji, title, themeName, onThemeClick }: ThemeCardProps) {
     onThemeClick(themeName);
   }, [themeName, onThemeClick]);
   return (
-    <>
-      <div 
-        className="theme-card"
-        role="article"
-        aria-label={`${title} 테마 카드`}
+    <div
+      className="flex w-[240px] flex-shrink-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/80 shadow-lg shadow-slate-950/40 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl sm:w-[260px] md:w-[280px]"
+      role="article"
+      aria-label={`${title} 테마 카드`}
+    >
+      <div
+        className="flex h-40 items-center justify-center bg-gradient-to-br from-sky-500 to-violet-500 text-5xl text-white sm:h-44"
+        aria-hidden="true"
       >
-        <div className="theme-image" aria-hidden="true">
-          <div className="theme-placeholder">{emoji}</div>
-        </div>
-        <h3>{title}</h3>
-        <div className="theme-button-wrapper">
-          <HKButton 
+        {emoji}
+      </div>
+      <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
+        <h3 className="text-sm font-semibold tracking-tight text-slate-50 sm:text-base">
+          {title}
+        </h3>
+        <p className="mt-1 text-xs text-slate-400">
+          이 테마에 맞는 인기 장소와 동선을 한 번에 모아보세요.
+        </p>
+        <div className="mt-4">
+          <HKButton
             variant="outline"
             size="sm"
             onClick={handleClick}
+            className="w-full border-slate-700 bg-slate-900/60 text-slate-100 hover:border-sky-500 hover:bg-slate-900"
             aria-label={`${title} 테마로 여행 계획 만들기`}
           >
             이 테마로 계획 만들기
           </HKButton>
         </div>
       </div>
-
-      <style jsx>{`
-        .theme-card {
-          flex: 0 0 280px;
-          background: white;
-          border-radius: 15px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          transition: transform 0.3s ease;
-        }
-
-        .theme-card:hover {
-          transform: translateY(-5px);
-        }
-
-        .theme-image {
-          height: 180px;
-          overflow: hidden;
-        }
-
-        .theme-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .theme-placeholder {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 4rem;
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          color: white;
-        }
-
-        .theme-card h3 {
-          padding: 20px 20px 10px;
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .theme-button-wrapper {
-          margin: 0 20px 20px;
-        }
-
-        @media (max-width: 768px) {
-          .theme-card {
-            flex: 0 0 250px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .theme-card {
-            flex: 0 0 220px;
-          }
-        }
-      `}</style>
-    </>
+    </div>
   );
 }
 

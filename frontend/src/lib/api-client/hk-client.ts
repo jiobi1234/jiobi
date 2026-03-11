@@ -188,8 +188,19 @@ export class HkClient extends BaseApiClient {
     latitude: number;
     longitude: number;
   }[]): Promise<{
-    summary: { distance_meters: number; duration_seconds: number };
+    summary: { distance_meters: number; duration_seconds: number; fare?: { taxi?: number | null; toll?: number | null } };
     path: { latitude: number; longitude: number }[];
+    full_path?: { latitude: number; longitude: number }[];
+    sections?: {
+      section_index: number;
+      from_index: number;
+      to_index: number;
+      distance_meters: number;
+      duration_seconds: number;
+      path: { latitude: number; longitude: number }[];
+      guides: { name?: string | null; description?: string | null; distance?: number | null }[];
+      traffic_level?: number | null;
+    }[];
   }> {
     return this.post('/hk/route', {
       points,

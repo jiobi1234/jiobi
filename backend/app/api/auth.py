@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import RedirectResponse, HTMLResponse
@@ -61,7 +63,7 @@ async def get_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
 
 @router.get("/google/login")
-async def google_login(next: str | None = Query(default=None, description="로그인 후 이동할 경로")):
+async def google_login(next: Optional[str] = Query(default=None, description="로그인 후 이동할 경로")):
     """
     Google OAuth2 로그인 시작 엔드포인트.
     프론트에서 /api/v1/auth/google/login?next=/ko/hk/mytravel 형태로 호출.
@@ -74,7 +76,11 @@ async def google_login(next: str | None = Query(default=None, description="로�
 
 
 @router.get("/google/callback", response_class=HTMLResponse)
-async def google_callback(code: str | None = None, state: str | None = None, error: str | None = None):
+async def google_callback(
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
     """
     Google OAuth2 콜백 엔드포인트.
     - code/state를 받아 토큰 교환 및 유저 생성/로그인 처리

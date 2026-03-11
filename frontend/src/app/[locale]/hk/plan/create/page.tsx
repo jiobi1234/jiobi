@@ -6,10 +6,13 @@ import { useLocale } from 'next-intl';
 import HKLayout from '../../../../../components/hk/HKLayout';
 import { useToast } from '../../../../../components/hk/common/Toast';
 import HKBackButton from '../../../../../components/hk/common/HKBackButton';
-import HKSearchBar from '../../../../../components/hk/common/HKSearchBar';
 import { KakaoMapScript, KakaoMap } from '../../../../../components/hk/map';
-import apiClient, { type WishlistItem, type PlanItem, type Place, type SearchPlacesResponse } from '../../../../../lib/api-client';
-import { getPlaceId, getPlaceImage } from '../../../../../utils/placeUtils';
+import apiClient, {
+  type PlanItem,
+  type Place,
+  type SearchPlacesResponse,
+} from '../../../../../lib/api-client';
+import { getPlaceId, getPlaceImage, getPlaceTitle, getPlaceAddress } from '../../../../../utils/placeUtils';
 
 interface ItineraryItem {
   id: string;
@@ -18,36 +21,37 @@ interface ItineraryItem {
   date: string;
   start_time: string;
   end_time: string;
-  // 지도/리스트 표시용 (백엔드 전송 X, 프론트 전용)
   latitude?: number;
   longitude?: number;
   address?: string;
+  image?: string;
 }
 
 export default function PlanCreatePage() {
   const router = useRouter();
   const locale = useLocale();
   const { showToast } = useToast();
+
   const [planTitle, setPlanTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('restaurant');
-  const [searchKeyword, setSearchKeyword] = useState('');
   const [activeDay, setActiveDay] = useState(1);
   const [saving, setSaving] = useState(false);
+
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-  const [loadingWishlist, setLoadingWishlist] = useState(false);
-  const [searchResults, setSearchResults] = useState<Place[]>([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<'search' | 'wishlist'>('search');
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [routePath, setRoutePath] = useState<{ lat: number; lng: number }[] | null>(null);
   const [routeSummary, setRouteSummary] = useState<{ distanceMeters: number; durationSeconds: number } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
 
-  // 여행 일수 계산
+  // 지도 기반 자동 장소 탐색
+  const [mapViewportCenter, setMapViewportCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapRegionName, setMapRegionName] = useState<string | null>(null);
+  const [mapPlaces, setMapPlaces] = useState<Place[]>([]);
+  const [mapPlacesLoading, setMapPlacesLoading] = useState(false);
+  const [selectedMapPlace, setSelectedMapPlace] = useState<Place | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'food' | 'cafe' | 'spot'>('all');
+
+  // 여행 일수
   const dayCount = useMemo(() => {
     if (!startDate || !endDate) return 1;
     const s = new Date(startDate);
@@ -68,7 +72,7 @@ export default function PlanCreatePage() {
 
   const activeDate = useMemo(() => getDateForDay(activeDay), [activeDay, startDate]);
 
-  // 현재 Day 기준 경유지 (좌표 있는 것만, 시간순 정렬) - 지도/경로/리스트용
+  // Day 기준 장소들 (좌표 있는 것만)
   const dayItems = useMemo(() => {
     if (!activeDate) return [];
     return itinerary
@@ -94,7 +98,7 @@ export default function PlanCreatePage() {
     return { lat: 37.5665, lng: 126.978 };
   }, [routePath, dayItems]);
 
-  // 경로선 조회 (2개 이상일 때만)
+  // 동선 Polyline 계산
   useEffect(() => {
     if (dayItems.length < 2) {
       setRoutePath(null);
@@ -115,9 +119,7 @@ export default function PlanCreatePage() {
         }));
         const route = await apiClient.hk.getRoute(points);
         if (cancelled) return;
-        setRoutePath(
-          (route.path || []).map((v) => ({ lat: v.latitude, lng: v.longitude }))
-        );
+        setRoutePath((route.path || []).map((v) => ({ lat: v.latitude, lng: v.longitude })));
         setRouteSummary({
           distanceMeters: route.summary?.distance_meters ?? 0,
           durationSeconds: route.summary?.duration_seconds ?? 0,
@@ -131,100 +133,33 @@ export default function PlanCreatePage() {
       }
     };
     fetchRoute();
-    return () => { cancelled = true; };
-  }, [activeDay, activeDate, dayItems]);
-
-  // 위시리스트 로딩
-  useEffect(() => {
-    const loadWishlist = async () => {
-      if (!apiClient.auth.isAuthenticated()) {
-        setWishlist([]);
-        return;
-      }
-
-      try {
-        setLoadingWishlist(true);
-        const res = await apiClient.hk.getWishlist();
-        setWishlist(res.items || []);
-      } catch (error) {
-        console.error('위시리스트 로딩 중 오류:', error);
-        setWishlist([]);
-      } finally {
-        setLoadingWishlist(false);
-      }
+    return () => {
+      cancelled = true;
     };
-
-    loadWishlist();
-  }, []);
+  }, [dayItems, showToast]);
 
   const updateItemTime = (id: string, field: 'start_time' | 'end_time', value: string) => {
-    setItinerary(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    );
+    setItinerary((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   };
 
   const handleRemoveItem = (id: string) => {
-    setItinerary(prev => prev.filter(item => item.id !== id));
-    setSelectedItemId((prev) => (prev === id ? null : prev));
+    setItinerary((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleAddFromWishlist = async (item: WishlistItem) => {
+  // 지도에서 선택한 장소 → 일정에 추가
+  const handleAddFromMapPlace = (place: Place) => {
     const date = activeDate;
     if (!date) {
       showToast('error', '먼저 여행 날짜를 설정해주세요.');
       return;
     }
-    const id = `${item.place_id}-${Date.now()}-${Math.random()}`;
-    let latitude: number | undefined;
-    let longitude: number | undefined;
-    try {
-      const detail = await apiClient.hk.getPlaceDetail(item.place_id);
-      latitude = detail.latitude;
-      longitude = detail.longitude;
-    } catch {
-      // 좌표 없으면 지도에 안 나오지만 일정에는 추가
-    }
-    setItinerary(prev => [
-      ...prev,
-      {
-        id,
-        place_id: item.place_id,
-        title: item.title,
-        date,
-        start_time: '',
-        end_time: '',
-        latitude,
-        longitude,
-        address: item.address,
-      },
-    ]);
-  };
-
-  const handleAddFromSearchResult = (place: Place) => {
-    const date = activeDate;
-    if (!date) {
-      showToast('error', '먼저 여행 날짜를 설정해주세요.');
-      return;
-    }
-
     const placeId = (place.place_id || place.id || '').toString();
     if (!placeId) {
       showToast('error', '이 장소는 식별자가 없어 일정을 추가할 수 없습니다.');
       return;
     }
-
-    const title =
-      (place.title as string) ||
-      (place.place_name as string) ||
-      '장소';
-    const address =
-      (place.address as string) ||
-      (place.address_name as string) ||
-      (place as { addr1?: string }).addr1 ||
-      '';
-
+    const title = getPlaceTitle(place);
+    const address = getPlaceAddress(place);
     const id = `${placeId}-${Date.now()}-${Math.random()}`;
     setItinerary((prev) => [
       ...prev,
@@ -238,33 +173,21 @@ export default function PlanCreatePage() {
         latitude: place.latitude,
         longitude: place.longitude,
         address: address || undefined,
+        image: getPlaceImage(place),
       },
     ]);
-    setSelectedItemId(id);
   };
 
-  const routeMarkers = useMemo(() => {
-    return dayItems.map((item, idx) => ({
-      lat: item.latitude as number,
-      lng: item.longitude as number,
-      title: item.title,
-      description: item.address,
-      number: idx + 1,
-    }));
-  }, [dayItems]);
-
+  // 계획 저장
   const savePlan = async () => {
     if (!planTitle || !startDate || !endDate) {
       showToast('error', '제목과 날짜를 모두 입력해주세요.');
       return;
     }
-
-    // 로그인 여부 확인
     if (!apiClient.auth.isAuthenticated()) {
       showToast('info', '로그인 후 계획을 저장할 수 있습니다.');
       return;
     }
-
     if (saving) return;
 
     setSaving(true);
@@ -281,7 +204,6 @@ export default function PlanCreatePage() {
         })),
       });
       showToast('success', '여행 계획이 저장되었습니다!');
-      // 저장 후 내 여행 페이지로 이동 (또는 추후 계획 상세 페이지로 변경 가능)
       router.push(`/${locale}/hk/mytravel`);
     } catch (error) {
       console.error('계획 저장 중 오류:', error);
@@ -291,959 +213,419 @@ export default function PlanCreatePage() {
     }
   };
 
-  const handleSearchPlaces = async (keyword: string, region?: string, district?: string) => {
-    const trimmed = keyword.trim();
-    if (!trimmed && !region && !district) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      setLoadingSearch(true);
-      const res: SearchPlacesResponse = await apiClient.hk.searchPlaces(
-        trimmed,
-        1,
-        20,
-        region,
-        district
-      );
-      setSearchResults(res.places || []);
-    } catch (error) {
-      console.error('장소 검색 중 오류:', error);
-      showToast('error', '장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-      setSearchResults([]);
-    } finally {
-      setLoadingSearch(false);
-    }
+  // KakaoMap onIdle → 지도 중심 저장
+  const handleMapIdle = (info: {
+    center: { lat: number; lng: number };
+    level: number;
+    bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } };
+  }) => {
+    setMapViewportCenter(info.center);
   };
+
+  // 중심 좌표 기준 역지오코딩 → 해당 지역 주요 장소 검색
+  useEffect(() => {
+    if (!mapViewportCenter) return;
+    if (typeof window === 'undefined') return;
+
+    let cancelled = false;
+
+    const run = () => {
+      const kakao = (window as any).kakao;
+      if (!kakao?.maps?.services) return;
+
+      const geocoder = new kakao.maps.services.Geocoder();
+      const coord = new kakao.maps.LatLng(mapViewportCenter.lat, mapViewportCenter.lng);
+
+      setMapPlacesLoading(true);
+
+      geocoder.coord2RegionCode(
+        coord.getLng(),
+        coord.getLat(),
+        async (result: any[], status: string) => {
+          if (cancelled) return;
+          if (status !== kakao.maps.services.Status.OK || !result || result.length === 0) {
+            setMapPlaces([]);
+            setMapPlacesLoading(false);
+            return;
+          }
+
+          const region1 = result[0].region_1depth_name as string;
+          const region2 = result[0].region_2depth_name as string;
+          const regionText = `${region1} ${region2}`;
+          setMapRegionName(regionText);
+
+          try {
+            const res: SearchPlacesResponse = await apiClient.hk.searchPlaces('', 1, 20, regionText);
+            if (cancelled) return;
+            setMapPlaces(res.places || []);
+          } catch (error) {
+            console.error('지도 기반 장소 검색 중 오류:', error);
+            if (!cancelled) setMapPlaces([]);
+          } finally {
+            if (!cancelled) setMapPlacesLoading(false);
+          }
+        },
+      );
+    };
+
+    const timer = setTimeout(run, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [mapViewportCenter]);
+
+  // 지도 추천 장소 카테고리 필터
+  const filteredMapPlaces = useMemo(() => {
+    if (!mapPlaces.length) return [];
+    if (selectedCategory === 'all') return mapPlaces;
+
+    return mapPlaces.filter((place) => {
+      const cat = `${place.category || ''} ${(place.google_types || []).join(' ')}`.toLowerCase();
+      if (selectedCategory === 'food') {
+        return cat.includes('음식') || cat.includes('restaurant') || cat.includes('food');
+      }
+      if (selectedCategory === 'cafe') {
+        return cat.includes('카페') || cat.includes('cafe');
+      }
+      return cat.includes('관광') || cat.includes('명소') || cat.includes('tour') || cat.includes('attraction');
+    });
+  }, [mapPlaces, selectedCategory]);
+
+  const routeMarkers = useMemo(
+    () =>
+      dayItems.map((item, idx) => ({
+        lat: item.latitude as number,
+        lng: item.longitude as number,
+        title: item.title,
+        description: item.address,
+        number: idx + 1,
+      })),
+    [dayItems],
+  );
+
+  const mapSuggestionMarkers = useMemo(
+    () =>
+      filteredMapPlaces
+        .filter((p) => p.latitude != null && p.longitude != null)
+        .map((place) => ({
+          lat: place.latitude as number,
+          lng: place.longitude as number,
+          title: getPlaceTitle(place),
+          description: getPlaceAddress(place),
+          onClick: () => setSelectedMapPlace(place),
+        })),
+    [filteredMapPlaces],
+  );
+
+  const combinedMarkers = useMemo(
+    () => [...routeMarkers, ...mapSuggestionMarkers],
+    [routeMarkers, mapSuggestionMarkers],
+  );
 
   return (
     <HKLayout>
-      <div className="plan-create-container">
-        <div className="plan-header">
+      <div className="w-full max-w-6xl lg:max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-4">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3">
           <HKBackButton />
-          <h1 className="header-title">새로운 여행 계획 만들기</h1>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">새로운 여행 계획 만들기</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              왼쪽에서 Day별 타임라인을 관리하고, 오른쪽 지도에서 장소를 찾아 바로 추가해 보세요.
+            </p>
+          </div>
         </div>
 
-        <div className="input-section">
-          <input 
-            type="text" 
-            className="title-input" 
-            placeholder="여행 계획의 제목을 입력하세요" 
-            id="planTitle"
-            value={planTitle}
-            onChange={(e) => setPlanTitle(e.target.value)}
-          />
-          <div className="date-inputs">
-            <input 
-              type="date" 
-              className="date-input" 
-              id="startDate"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <span>-</span>
-            <input 
-              type="date" 
-              className="date-input" 
-              id="endDate"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+        {/* 제목 / 날짜 / 저장 */}
+        <div className="flex flex-col md:flex-row md:items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 sm:px-6 py-4 shadow-sm">
+          <div className="flex-1 flex flex-col gap-2">
+            <label htmlFor="planTitle" className="text-xs font-medium text-slate-600">
+              계획 제목
+            </label>
+            <input
+              id="planTitle"
+              type="text"
+              value={planTitle}
+              onChange={(e) => setPlanTitle(e.target.value)}
+              placeholder="예: 3박 4일 서울·수도권 미식 여행"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
           </div>
-          <button className="save-button" onClick={savePlan}>
-            저장
-          </button>
+          <div className="flex items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="startDate" className="text-xs font-medium text-slate-600">
+                시작일
+              </label>
+              <input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm focus:border-sky-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+            <span className="pb-3 text-slate-400">~</span>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="endDate" className="text-xs font-medium text-slate-600">
+                종료일
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm focus:border-sky-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+          </div>
+          <div className="md:self-end">
+            <button
+              type="button"
+              onClick={savePlan}
+              disabled={saving}
+              className="inline-flex items-center justify-center rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:bg-slate-300"
+            >
+              {saving ? '저장 중...' : '계획 저장'}
+            </button>
+          </div>
         </div>
 
-        <div className="plan-main-content">
-          {/* 왼쪽: 장소 추가 (위시리스트 / 검색) */}
-          <div className="search-panel">
-            {/* 탭 버튼 */}
-            <div className="search-mode-tabs">
-              <button
-                className={`search-mode-tab ${searchMode === 'search' ? 'active' : ''}`}
-                onClick={() => setSearchMode('search')}
-                type="button"
-              >
-                검색으로 추가
-              </button>
-              <button
-                className={`search-mode-tab ${searchMode === 'wishlist' ? 'active' : ''}`}
-                onClick={() => setSearchMode('wishlist')}
-                type="button"
-              >
-                위시리스트로 추가
-              </button>
+        {/* 메인 2분할: 왼쪽 타임라인 / 오른쪽 지도 */}
+        <div className="flex flex-col lg:flex-row gap-4 lg:h-[70vh]">
+          {/* 왼쪽: Day + 타임라인 */}
+          <div className="lg:w-1/3 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-sky-600 uppercase tracking-wide">Timeline</span>
+                {activeDate && <span className="text-[11px] text-slate-500">{activeDate}</span>}
+              </div>
+              <div className="flex gap-1">
+                {Array.from({ length: dayCount }, (_, idx) => idx + 1).map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setActiveDay(day)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+                      activeDay === day
+                        ? 'bg-sky-600 text-white border-sky-600'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    Day {day}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* 검색 모드 */}
-            {searchMode === 'search' && (
-              <>
-                <div className="search-bar-wrapper">
-                  <HKSearchBar
-                    initialKeyword=""
-                    onSearch={handleSearchPlaces}
-                    debounceMs={400}
-                  />
-                </div>
-
-                {loadingSearch ? (
-                  <p>장소를 검색하는 중입니다...</p>
-                ) : searchResults.length === 0 ? (
-                  <p>검색 결과가 없습니다. 검색어 또는 지역을 바꿔보세요.</p>
-                ) : (
-                  <div className="search-results">
-                    {searchResults.map((place) => {
-                      const placeId = getPlaceId(place);
-                      const image = getPlaceImage(place);
-                      const title = (place.title as string) ||
-                        (place.place_name as string) ||
-                        '장소';
-                      const address = (place.address as string) ||
-                        (place.address_name as string) ||
-                        place.addr1 ||
-                        '';
-
-                      return (
-                        <div
-                          key={placeId}
-                          className="search-result-item"
-                          onClick={() => {
-                            if (placeId) {
-                              router.push(`/${locale}/hk/${placeId}`);
-                            }
-                          }}
-                        >
-                          <div className="result-image">
-                            {image ? (
-                              <img src={image} alt={title} />
-                            ) : (
-                              <div className="result-image-placeholder">📍</div>
-                            )}
-                          </div>
-                          <div className="result-info">
-                            <div className="result-name">{title}</div>
-                            <div className="result-details">{address}</div>
-                          </div>
-                          <button
-                            className="add-btn"
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddFromSearchResult(place);
-                            }}
-                          >
-                            +
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* 위시리스트 모드 */}
-            {searchMode === 'wishlist' && (
-              <>
-                {loadingWishlist ? (
-                  <p>위시리스트를 불러오는 중입니다...</p>
-                ) : wishlist.length === 0 ? (
-                  <p>위시리스트에 저장된 장소가 없습니다.</p>
-                ) : (
-                  <div className="search-results">
-                    {wishlist.map((item) => (
-                      <div
-                        key={item.id}
-                        className="search-result-item"
-                        onClick={() => {
-                          if (item.place_id) {
-                            router.push(`/${locale}/hk/${item.place_id}`);
-                          }
-                        }}
-                      >
-                        <div className="result-image">
-                          {item.image ? (
-                            <img src={item.image} alt={item.title} />
-                          ) : (
-                            <div className="result-image-placeholder">📍</div>
-                          )}
-                        </div>
-                        <div className="result-info">
-                          <div className="result-name">{item.title}</div>
-                          <div className="result-details">{item.address || ''}</div>
-                        </div>
-                        <button
-                          className="add-btn"
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddFromWishlist(item);
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* 오른쪽: 일정 편집 */}
-          <div className="plan-panel">
-            <div className="day-tabs">
-              {Array.from({ length: dayCount }, (_, idx) => idx + 1).map((day) => (
-                <button
-                  key={day}
-                  className={`day-tab ${activeDay === day ? 'active' : ''}`}
-                  onClick={() => setActiveDay(day)}
-                >
-                  Day {day}
-                </button>
-              ))}
-            </div>
-
-            <div className="itinerary-list">
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
               {itinerary
                 .filter((i) => i.date === activeDate)
-                .map((item) => (
+                .map((item, idx) => (
                   <div
                     key={item.id}
-                    className="itinerary-item"
-                    draggable
-                    onDragStart={() => setDraggingId(item.id)}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                    }}
-                    onDrop={() => {
-                      if (!draggingId || draggingId === item.id) return;
-                      setItinerary((prev) => {
-                        const fromIndex = prev.findIndex((i) => i.id === draggingId);
-                        const toIndex = prev.findIndex((i) => i.id === item.id);
-                        if (fromIndex === -1 || toIndex === -1) return prev;
-                        // 같은 날짜 내에서만 순서 변경
-                        if (prev[fromIndex].date !== prev[toIndex].date) return prev;
-                        const next = [...prev];
-                        const [moved] = next.splice(fromIndex, 1);
-                        next.splice(toIndex, 0, moved);
-                        return next;
-                      });
-                      setDraggingId(null);
-                    }}
-                    onDragEnd={() => setDraggingId(null)}
+                    className="group flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 shadow-[0_1px_3px_rgba(15,23,42,0.06)]"
                   >
-                    <span className="drag-handle">⋮⋮</span>
-                    <div className="itinerary-info">
-                      <div className="itinerary-name">{item.title}</div>
-                      <div className="itinerary-time-inputs">
+                    <div className="flex flex-col items-center pt-1">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-700">
+                        {idx + 1}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-start gap-2">
+                        {item.image && (
+                          <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+                            <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-900 truncate">{item.title}</div>
+                          {item.address && (
+                            <div className="text-[11px] text-slate-500 line-clamp-2">{item.address}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <input
                           type="time"
                           value={item.start_time}
-                          onChange={(e) =>
-                            updateItemTime(item.id, 'start_time', e.target.value)
-                          }
+                          onChange={(e) => updateItemTime(item.id, 'start_time', e.target.value)}
+                          className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[11px] text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                         />
-                        <span> - </span>
+                        <span className="text-[11px] text-slate-400">~</span>
                         <input
                           type="time"
                           value={item.end_time}
-                          onChange={(e) =>
-                            updateItemTime(item.id, 'end_time', e.target.value)
-                          }
+                          onChange={(e) => updateItemTime(item.id, 'end_time', e.target.value)}
+                          className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[11px] text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                         />
                       </div>
                     </div>
-                    <div className="itinerary-actions">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                      aria-label="일정에서 제거"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+              {itinerary.filter((i) => i.date === activeDate).length === 0 && (
+                <p className="text-xs text-slate-500 leading-relaxed px-1">
+                  이 날짜에는 아직 일정이 없습니다.
+                  <br />
+                  오른쪽 지도에서 장소를 선택하고 <span className="font-semibold">일정에 추가</span> 버튼을 눌러 보세요.
+                </p>
+              )}
+            </div>
+
+            {routeSummary && (
+              <div className="border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-600 flex items-center justify-between bg-slate-50">
+                <span>총 거리 {(routeSummary.distanceMeters / 1000).toFixed(1)} km</span>
+                <span>예상 이동 {Math.round(routeSummary.durationSeconds / 60)}분</span>
+              </div>
+            )}
+          </div>
+
+          {/* 오른쪽: 지도 + 필터 + 인포 패널 */}
+          <div className="lg:w-2/3 relative flex flex-col rounded-2xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
+            <div className="absolute inset-x-4 top-3 z-10 flex flex-wrap items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 shadow-sm border border-slate-200">
+                <span className="text-[11px] font-medium text-slate-700">지도에서 장소 찾기</span>
+                {mapRegionName && <span className="text-[10px] text-slate-400">({mapRegionName} 기준)</span>}
+              </div>
+              <div className="flex gap-1.5 bg-white/90 rounded-full px-1 py-1 shadow-sm border border-slate-200">
+                {[
+                  { id: 'all', label: '전체' },
+                  { id: 'food', label: '음식점' },
+                  { id: 'cafe', label: '카페' },
+                  { id: 'spot', label: '명소' },
+                ].map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(chip.id as any)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${
+                      selectedCategory === chip.id
+                        ? 'bg-sky-600 text:white border-sky-600 shadow-sm'
+                        : 'bg-transparent text-slate-700 border-transparent hover:bg-slate-100'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative flex-1">
+              {routeLoading && (
+                <div className="pointer-events-none absolute inset-x-0 top-4 z-20 mx-auto w-max rounded-full bg-black/70 px-4 py-1.5 text-xs text-white">
+                  동선을 계산하고 있어요...
+                </div>
+              )}
+              {mapPlacesLoading && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 mx-auto w-max rounded-full bg-black/65 px-4 py-1.5 text-[11px] text-white">
+                  이 주변의 주요 장소를 불러오는 중입니다...
+                </div>
+              )}
+
+              <KakaoMapScript />
+              <KakaoMap
+                center={mapCenter}
+                level={6}
+                markers={combinedMarkers}
+                path={routePath || undefined}
+                fitToView
+                onIdle={handleMapIdle}
+                className="w-full h-full"
+                style={{ height: '100%' }}
+              />
+
+              {selectedMapPlace && (
+                <>
+                  <div
+                    className="absolute inset-0 z-20 cursor-default"
+                    onClick={() => setSelectedMapPlace(null)}
+                    aria-hidden
+                  />
+                  <div
+                    className="absolute left-1/2 bottom-4 z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-xl backdrop-blur-sm"
+                    onClick={(e) => e.stopPropagation()}
+                    role="dialog"
+                    aria-label="지도 장소 상세"
+                  >
+                    <div className="flex items-start gap-3">
+                      {getPlaceImage(selectedMapPlace) && (
+                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-slate-200">
+                          <img
+                            src={getPlaceImage(selectedMapPlace)!}
+                            alt={getPlaceTitle(selectedMapPlace)}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="text-sm font-semibold text-slate-900 truncate">
+                          {getPlaceTitle(selectedMapPlace)}
+                        </div>
+                        {getPlaceAddress(selectedMapPlace) && (
+                          <div className="text-[11px] text-slate-500 line-clamp-2">
+                            {getPlaceAddress(selectedMapPlace)}
+                          </div>
+                        )}
+                        {selectedMapPlace.google_rating != null && (
+                          <div className="flex items-center gap-1 text-[11px] text-amber-600">
+                            <span>★ {selectedMapPlace.google_rating.toFixed(1)}</span>
+                            {selectedMapPlace.google_ratings_total != null && (
+                              <span className="text-[10px] text-slate-400">
+                                ({selectedMapPlace.google_ratings_total.toLocaleString()} 리뷰)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <button
-                        className="info-btn"
                         type="button"
-                        onClick={() => handleRemoveItem(item.id)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                        onClick={() => setSelectedMapPlace(null)}
+                        aria-label="닫기"
                       >
                         ✕
                       </button>
                     </div>
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                          const pid = getPlaceId(selectedMapPlace);
+                          if (pid) {
+                            router.push(`/${locale}/hk/${pid}`);
+                          }
+                        }}
+                      >
+                        상세 보기
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-full bg-sky-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-sky-700"
+                        onClick={() => {
+                          handleAddFromMapPlace(selectedMapPlace);
+                          setSelectedMapPlace(null);
+                        }}
+                      >
+                        일정에 추가
+                      </button>
+                    </div>
                   </div>
-                ))}
-              {itinerary.filter((i) => i.date === activeDate).length === 0 && (
-                <p>이 날짜에는 추가된 일정이 없습니다. 위시리스트에서 장소를 추가해보세요.</p>
+                </>
               )}
             </div>
           </div>
         </div>
-
-        {/* 지도 섹션: 경로보기와 동일 스타일 (경로선 + 장소 리스트) */}
-        <div className="plan-map-section">
-          <div className="route-map-wrap">
-            {routeLoading && (
-              <div className="route-loading">경로를 계산하고 있어요...</div>
-            )}
-            <KakaoMapScript />
-            <KakaoMap
-              center={mapCenter}
-              level={6}
-              markers={routeMarkers}
-              path={routePath || undefined}
-              fitToView
-              className="route-map plan-create-map"
-              style={{ height: 'min(480px, 55vh)' }}
-            />
-          </div>
-          {routeSummary && (
-            <div className="route-summary">
-              <span>총 거리: {(routeSummary.distanceMeters / 1000).toFixed(1)} km</span>
-              <span>예상 소요 시간: {Math.round(routeSummary.durationSeconds / 60)}분</span>
-            </div>
-          )}
-          <div className="route-list">
-            <h3 className="route-list-title">Day {activeDay} 경유지</h3>
-            <ol className="route-list-ol">
-              {dayItems.map((item, idx) => (
-                <li key={item.id} className="route-list-item">
-                  <span className="route-list-num">{idx + 1}</span>
-                  <button
-                    type="button"
-                    className="route-list-name route-list-name-link"
-                    onClick={() => router.push(`/${locale}/hk/${item.place_id}`)}
-                  >
-                    {item.title}
-                  </button>
-                  {item.address && (
-                    <span className="route-list-addr">{item.address}</span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
       </div>
-
-      <style jsx>{`
-        .plan-create-container {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 20px;
-          background-color: #f8f9fa;
-          min-height: calc(100vh - 120px);
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .plan-header {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 30px;
-          padding: 20px 0;
-          width: 100%;
-          position: relative;
-        }
-
-        .back-button {
-          background: #2c3e50;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          position: absolute;
-          left: 0;
-        }
-
-        .back-button:hover {
-          background: #34495e;
-          transform: scale(1.05);
-        }
-
-        .header-title {
-          font-size: 1.8rem;
-          font-weight: 700;
-          color: #2c3e50;
-          text-align: center;
-          margin: 0;
-        }
-
-        .save-button {
-          background: #3498db;
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          margin-left: auto;
-        }
-
-        .save-button:hover {
-          background: #2980b9;
-          transform: translateY(-2px);
-        }
-
-        .input-section {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          margin-bottom: 30px;
-          padding: 20px;
-          background: white;
-          border-radius: 15px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .title-input {
-          flex: 0 0 600px;
-          padding: 15px 20px;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
-          font-size: 1rem;
-          background: #f8f9fa;
-          transition: all 0.3s ease;
-        }
-
-        .title-input:focus {
-          outline: none;
-          border-color: #3498db;
-          background: white;
-        }
-
-        .date-inputs {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .date-input {
-          padding: 15px;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
-          font-size: 1rem;
-          background: #f8f9fa;
-          transition: all 0.3s ease;
-        }
-
-        .date-input:focus {
-          outline: none;
-          border-color: #3498db;
-          background: white;
-        }
-
-        .plan-main-content {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 30px;
-          height: 800px;
-          max-height: 800px;
-        }
-
-        .search-panel {
-          background: white;
-          border-radius: 15px;
-          padding: 25px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          max-height: 800px;
-          overflow: hidden;
-        }
-
-        .search-mode-tabs {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 20px;
-          border-bottom: 2px solid #e9ecef;
-        }
-
-        .search-mode-tab {
-          flex: 1;
-          padding: 12px 20px;
-          border: none;
-          border-bottom: 3px solid transparent;
-          background: transparent;
-          color: #6c757d;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          margin-bottom: -2px;
-        }
-
-        .search-mode-tab:hover {
-          color: #3498db;
-        }
-
-        .search-mode-tab.active {
-          color: #3498db;
-          border-bottom-color: #3498db;
-        }
-
-        .search-title {
-          font-size: 1.3rem;
-          font-weight: 700;
-          color: #2c3e50;
-          margin-bottom: 20px;
-        }
-
-        .search-bar-wrapper {
-          margin-bottom: 20px;
-        }
-
-        .search-bar {
-          position: relative;
-          margin-bottom: 20px;
-        }
-
-        .search-input {
-          width: 100%;
-          padding: 15px 20px 15px 50px;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
-          font-size: 1rem;
-          background: #f8f9fa;
-          transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-          outline: none;
-          border-color: #3498db;
-          background: white;
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 15px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #6c757d;
-          font-size: 1.2rem;
-        }
-
-        .category-filters {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 20px;
-          flex-wrap: wrap;
-        }
-
-        .category-btn {
-          padding: 8px 16px;
-          border: 2px solid #e9ecef;
-          border-radius: 20px;
-          background: white;
-          color: #6c757d;
-          font-size: 0.9rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .category-btn.active {
-          background: #3498db;
-          color: white;
-          border-color: #3498db;
-        }
-
-        .category-btn:hover {
-          border-color: #3498db;
-          color: #3498db;
-        }
-
-        .search-actions {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 20px;
-        }
-
-        .bookmark-icon {
-          color: #2c3e50;
-          font-size: 1.5rem;
-          cursor: pointer;
-        }
-
-        .search-btn {
-          background: #3498db;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .search-btn:hover {
-          background: #2980b9;
-        }
-
-        .search-results {
-          flex: 1;
-          overflow-y: auto;
-          padding-right: 10px;
-          max-height: 550px;
-          min-height: 300px;
-        }
-
-        .search-result-item {
-          display: flex;
-          align-items: center;
-          padding: 15px;
-          border: 1px solid #e9ecef;
-          border-radius: 10px;
-          margin-bottom: 10px;
-          background: white;
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
-
-        .search-result-item:hover {
-          border-color: #3498db;
-          box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
-        }
-
-        .result-image {
-          width: 50px;
-          height: 50px;
-          border-radius: 8px;
-          background: #e9ecef;
-          margin-right: 15px;
-          flex-shrink: 0;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .result-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .result-image-placeholder {
-          font-size: 24px;
-          color: #adb5bd;
-        }
-
-        .result-info {
-          flex: 1;
-        }
-
-        .result-name {
-          font-weight: 600;
-          color: #2c3e50;
-          margin-bottom: 5px;
-        }
-
-        .result-details {
-          font-size: 0.9rem;
-          color: #6c757d;
-        }
-
-        .add-btn {
-          background: #6c757d;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .add-btn:hover {
-          background: #3498db;
-          transform: scale(1.1);
-        }
-
-        .plan-panel {
-          background: white;
-          border-radius: 15px;
-          padding: 25px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          max-height: 800px;
-          overflow: hidden;
-        }
-
-        .day-tabs {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 20px;
-        }
-
-        .day-tab {
-          padding: 10px 20px;
-          border: 2px solid #e9ecef;
-          border-radius: 8px;
-          background: white;
-          color: #6c757d;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .day-tab.active {
-          background: #3498db;
-          color: white;
-          border-color: #3498db;
-        }
-
-        .day-tab:hover {
-          border-color: #3498db;
-          color: #3498db;
-        }
-
-        .itinerary-list {
-          flex: 1;
-          overflow-y: auto;
-          padding-right: 10px;
-          max-height: 550px;
-          min-height: 300px;
-        }
-
-        .itinerary-item {
-          display: flex;
-          align-items: center;
-          padding: 15px;
-          border: 1px solid #e9ecef;
-          border-radius: 10px;
-          margin-bottom: 10px;
-          background: white;
-          transition: all 0.3s ease;
-        }
-
-        .drag-handle {
-          color: #6c757d;
-          font-size: 1.2rem;
-          margin-right: 15px;
-          cursor: grab;
-        }
-
-        .itinerary-image {
-          width: 50px;
-          height: 50px;
-          border-radius: 8px;
-          background: #e9ecef;
-          margin-right: 15px;
-        }
-
-        .itinerary-info {
-          flex: 1;
-        }
-
-        .itinerary-name {
-          font-weight: 600;
-          color: #2c3e50;
-          margin-bottom: 5px;
-        }
-
-        .itinerary-time {
-          font-size: 0.9rem;
-          color: #6c757d;
-        }
-
-        .itinerary-time-inputs {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-top: 8px;
-        }
-
-        .itinerary-time-inputs input[type="time"] {
-          padding: 6px 10px;
-          border: 1px solid #e9ecef;
-          border-radius: 6px;
-          font-size: 0.9rem;
-          background: #f8f9fa;
-        }
-
-        .itinerary-time-inputs input[type="time"]:focus {
-          outline: none;
-          border-color: #3498db;
-          background: white;
-        }
-
-        .itinerary-item {
-          cursor: move;
-        }
-
-        .itinerary-item[draggable="true"]:hover {
-          border-color: #3498db;
-          box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
-        }
-
-        .itinerary-actions {
-          display: flex;
-          gap: 10px;
-        }
-
-        .info-btn {
-          background: #6c757d;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .info-btn:hover {
-          background: #3498db;
-        }
-
-        .plan-map-section {
-          margin-top: 30px;
-          padding: 20px;
-          background: white;
-          border-radius: 15px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .route-map-wrap {
-          position: relative;
-          border-radius: 12px;
-          overflow: hidden;
-          margin-bottom: 16px;
-        }
-
-        .route-loading {
-          position: absolute;
-          top: 12px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0, 0, 0, 0.7);
-          color: #fff;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-size: 0.9rem;
-          z-index: 10;
-        }
-
-        .route-map,
-        .plan-create-map {
-          border-radius: 12px;
-          overflow: hidden;
-        }
-
-        .route-summary {
-          display: flex;
-          gap: 24px;
-          margin-bottom: 24px;
-          padding: 12px 16px;
-          background: #f0f7ff;
-          border-radius: 10px;
-          font-size: 0.95rem;
-          font-weight: 500;
-          color: #1890ff;
-        }
-
-        .route-list-title {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #333;
-          margin: 0 0 12px 0;
-        }
-
-        .route-list-ol {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .route-list-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 0;
-          border-bottom: 1px solid #eee;
-        }
-
-        .route-list-item:last-child {
-          border-bottom: none;
-        }
-
-        .route-list-num {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: #1890ff;
-          color: #fff;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.85rem;
-          font-weight: 700;
-          flex-shrink: 0;
-        }
-
-        .route-list-name {
-          font-weight: 600;
-          color: #333;
-        }
-
-        .route-list-name-link {
-          background: none;
-          border: none;
-          padding: 0;
-          cursor: pointer;
-          text-align: left;
-          font: inherit;
-        }
-
-        .route-list-name-link:hover {
-          color: #1890ff;
-          text-decoration: underline;
-        }
-
-        .route-list-addr {
-          font-size: 0.85rem;
-          color: #888;
-          margin-left: auto;
-        }
-
-        @media (max-width: 768px) {
-          .plan-main-content {
-            grid-template-columns: 1fr;
-            gap: 20px;
-          }
-
-          .input-section {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .date-inputs {
-            justify-content: space-between;
-          }
-
-          .category-filters {
-            justify-content: center;
-          }
-        }
-      `}</style>
     </HKLayout>
   );
 }
-

@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl';
 import HKLayout from '../../../../../components/hk/HKLayout';
 import { useToast } from '../../../../../components/hk/common/Toast';
 import { getStringParam } from '../../../../../utils/typeGuards';
-import '../../../../../styles/hk/travel-stories.css';
 
 interface TravelStory {
   id: number;
@@ -70,47 +69,47 @@ function TravelStoriesPageContent() {
 
   return (
     <>
-      <div className="hk-travel-stories-back-button-container">
-        <button className="hk-travel-stories-back-button" onClick={() => router.back()}>
+      <div className="fixed top-5 left-5 z-[1000]">
+        <button
+          type="button"
+          className="w-10 h-10 rounded-full bg-black/70 text-white border-0 flex items-center justify-center cursor-pointer hover:bg-black/90 hover:scale-110 transition"
+          onClick={() => router.back()}
+        >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
       </div>
 
-      <div className="hk-travel-stories-container">
-        <div className="hk-travel-stories-header">
-          <h1 className="hk-travel-stories-title">{t('title')}</h1>
-          <p className="hk-travel-stories-description">
-            {t('description')}
-          </p>
+      <div className="max-w-6xl mx-auto px-4 py-10 bg-slate-100 min-h-screen">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 m-0 mb-5">{t('title')}</h1>
+          <p className="text-lg text-slate-600 leading-relaxed m-0">{t('description')}</p>
         </div>
-        
-        <div className="hk-travel-stories-filter-section">
-          <div className="hk-travel-stories-search-input-wrapper">
-            <input 
-              type="text" 
-              className="hk-travel-stories-search-input" 
+
+        <div className="bg-white rounded-2xl p-6 mb-10 shadow-sm flex flex-wrap gap-4 items-center">
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
               placeholder={t('searchPlaceholder')}
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-full py-3 px-4 border-2 border-slate-200 rounded-xl text-base focus:outline-none focus:border-sky-500"
             />
           </div>
-          
-          <select 
-            className="hk-travel-stories-filter-select" 
+          <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            className="py-3 px-4 border-2 border-slate-200 rounded-xl bg-white text-base cursor-pointer min-w-[120px] focus:outline-none focus:border-sky-500"
           >
             <option value="latest">{t('sortLatest')}</option>
             <option value="popular">{t('sortPopular')}</option>
           </select>
-          
-          <select 
-            className="hk-travel-stories-filter-select" 
+          <select
             value={region}
             onChange={(e) => setRegion(e.target.value)}
+            className="py-3 px-4 border-2 border-slate-200 rounded-xl bg-white text-base cursor-pointer min-w-[120px] focus:outline-none focus:border-sky-500"
           >
             <option value="">{t('regionAll')}</option>
             <option value="서울">{t('regionSeoul')}</option>
@@ -120,11 +119,10 @@ function TravelStoriesPageContent() {
             <option value="경기">{t('regionGyeonggi')}</option>
             <option value="전라">{t('regionJeolla')}</option>
           </select>
-          
-          <select 
-            className="hk-travel-stories-filter-select" 
+          <select
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
+            className="py-3 px-4 border-2 border-slate-200 rounded-xl bg-white text-base cursor-pointer min-w-[120px] focus:outline-none focus:border-sky-500"
           >
             <option value="">{t('durationAll')}</option>
             <option value="1-2">{t('duration1-2')}</option>
@@ -132,69 +130,70 @@ function TravelStoriesPageContent() {
             <option value="5-7">{t('duration5-7')}</option>
             <option value="8+">{t('duration8+')}</option>
           </select>
-          
-          <button className="hk-travel-stories-search-button" onClick={handleSearch}>{t('searchButton')}</button>
+          <button
+            type="button"
+            className="py-3 px-6 bg-sky-600 text-white border-0 rounded-xl text-base font-semibold cursor-pointer hover:bg-sky-700"
+            onClick={handleSearch}
+          >
+            {t('searchButton')}
+          </button>
         </div>
-        
-        <div className="hk-travel-stories-grid">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {stories.length > 0 ? (
             stories.map((story) => (
-              <div 
+              <div
                 key={story.id}
-                className="hk-travel-stories-card" 
+                className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:-translate-y-0.5 transition cursor-pointer"
                 onClick={() => viewStory(story.id)}
               >
-                <div className="hk-travel-stories-image">
+                <div className="h-44 bg-slate-200 flex items-center justify-center text-4xl overflow-hidden">
                   {story.image ? (
-                    <img src={story.image} alt={story.title} />
+                    <img src={story.image} alt={story.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div>🏞️</div>
+                    <span>🏞️</span>
                   )}
                 </div>
-                
-                <div className="hk-travel-stories-content">
-                  <h3 className="hk-travel-stories-card-title">{story.title}</h3>
-                  <p className="hk-travel-stories-card-description">{story.description}</p>
-                  
-                  <div className="hk-travel-stories-hashtags">
+                <div className="p-5">
+                  <h3 className="text-lg font-bold text-slate-800 mb-2">{story.title}</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed mb-3 line-clamp-2">{story.description}</p>
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {story.hashtags.map((tag, idx) => (
-                      <span key={idx} className="hk-travel-stories-hashtag">{tag}</span>
+                      <span key={idx} className="py-1 px-2 rounded-lg bg-sky-100 text-sky-700 text-xs font-medium">
+                        {tag}
+                      </span>
                     ))}
                   </div>
-                  
-                  <div className="hk-travel-stories-meta">
-                    <div className="hk-travel-stories-author">
-                      <div className="hk-travel-stories-author-avatar">
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm">
                         {story.author_avatar ? (
-                          <img src={story.author_avatar} alt={story.author} />
+                          <img src={story.author_avatar} alt={story.author} className="w-full h-full rounded-full object-cover" />
                         ) : (
                           '👤'
                         )}
                       </div>
-                      <span className="hk-travel-stories-author-name">{story.author}</span>
+                      <span className="text-sm text-slate-600">{story.author}</span>
                     </div>
-                    
-                    <div className="hk-travel-stories-stats">
-                      <div className="hk-travel-stories-stat-item">
-                        <span>{story.duration}</span>
-                      </div>
-                      <div className="hk-travel-stories-stat-item">
+                    <div className="flex items-center gap-3 text-sm text-slate-500">
+                      <span>{story.duration}</span>
+                      <span className="flex items-center gap-1">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l9 9z"/>
                         </svg>
-                        <span>{story.likes}</span>
-                      </div>
-                      <div className="hk-travel-stories-stat-item">
+                        {story.likes}
+                      </span>
+                      <span className="flex items-center gap-1">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                         </svg>
-                        <span>{story.saves}</span>
-                      </div>
+                        {story.saves}
+                      </span>
                     </div>
                   </div>
-                  
-                  <button 
-                    className="hk-travel-stories-action-button" 
+                  <button
+                    type="button"
+                    className="w-full py-2.5 bg-sky-600 text-white border-0 rounded-xl text-sm font-semibold cursor-pointer hover:bg-sky-700"
                     onClick={(e) => {
                       e.stopPropagation();
                       addToMyTravel(story.id);
@@ -206,7 +205,7 @@ function TravelStoriesPageContent() {
               </div>
             ))
           ) : (
-            <div className="hk-travel-stories-no-data">{t('noStories')}</div>
+            <div className="col-span-full py-16 text-center text-slate-500 text-lg">{t('noStories')}</div>
           )}
         </div>
       </div>
