@@ -6,6 +6,83 @@ import Footer from '../../../../components/Footer';
 
 type TabType = 'clock' | 'alarm' | 'stopwatch' | 'timer';
 
+/** 세계 시계용 도시 목록 (IANA timeZone 기준). 유명 도시 + 2026 월드컵 개최 도시 포함 */
+const WORLD_CITIES: { id: string; name: string; country: string; timeZone: string }[] = [
+  // 동아시아·한국
+  { id: 'Asia/Seoul', name: '서울', country: '대한민국', timeZone: 'Asia/Seoul' },
+  { id: 'Asia/Tokyo', name: '도쿄', country: '일본', timeZone: 'Asia/Tokyo' },
+  { id: 'Asia/Shanghai', name: '상하이', country: '중국', timeZone: 'Asia/Shanghai' },
+  { id: 'Asia/Beijing', name: '베이징', country: '중국', timeZone: 'Asia/Shanghai' },
+  { id: 'Asia/Hong_Kong', name: '홍콩', country: '중국', timeZone: 'Asia/Hong_Kong' },
+  { id: 'Asia/Taipei', name: '타이페이', country: '대만', timeZone: 'Asia/Taipei' },
+  { id: 'Asia/Urumqi', name: '우루무치', country: '중국', timeZone: 'Asia/Urumqi' },
+  // 동남아시아
+  { id: 'Asia/Singapore', name: '싱가포르', country: '싱가포르', timeZone: 'Asia/Singapore' },
+  { id: 'Asia/Bangkok', name: '방콕', country: '태국', timeZone: 'Asia/Bangkok' },
+  { id: 'Asia/Jakarta', name: '자카르타', country: '인도네시아', timeZone: 'Asia/Jakarta' },
+  { id: 'Asia/Manila', name: '마닐라', country: '필리핀', timeZone: 'Asia/Manila' },
+  { id: 'Asia/Kuala_Lumpur', name: '쿠알라룸푸르', country: '말레이시아', timeZone: 'Asia/Kuala_Lumpur' },
+  { id: 'Asia/Ho_Chi_Minh', name: '호치민', country: '베트남', timeZone: 'Asia/Ho_Chi_Minh' },
+  // 남아시아·중동
+  { id: 'Asia/Kolkata', name: '뭄바이', country: '인도', timeZone: 'Asia/Kolkata' },
+  { id: 'Asia/Delhi', name: '델리', country: '인도', timeZone: 'Asia/Kolkata' },
+  { id: 'Asia/Dubai', name: '두바이', country: 'UAE', timeZone: 'Asia/Dubai' },
+  { id: 'Asia/Riyadh', name: '리야드', country: '사우디아라비아', timeZone: 'Asia/Riyadh' },
+  { id: 'Asia/Istanbul', name: '이스탄불', country: '터키', timeZone: 'Europe/Istanbul' },
+  // 오세아니아
+  { id: 'Australia/Sydney', name: '시드니', country: '오스트레일리아', timeZone: 'Australia/Sydney' },
+  { id: 'Australia/Melbourne', name: '멜버른', country: '오스트레일리아', timeZone: 'Australia/Melbourne' },
+  { id: 'Pacific/Auckland', name: '오클랜드', country: '뉴질랜드', timeZone: 'Pacific/Auckland' },
+  // 유럽
+  { id: 'Europe/London', name: '런던', country: '영국', timeZone: 'Europe/London' },
+  { id: 'Europe/Paris', name: '파리', country: '프랑스', timeZone: 'Europe/Paris' },
+  { id: 'Europe/Berlin', name: '베를린', country: '독일', timeZone: 'Europe/Berlin' },
+  { id: 'Europe/Madrid', name: '마드리드', country: '스페인', timeZone: 'Europe/Madrid' },
+  { id: 'Europe/Rome', name: '로마', country: '이탈리아', timeZone: 'Europe/Rome' },
+  { id: 'Europe/Amsterdam', name: '암스테르담', country: '네덜란드', timeZone: 'Europe/Amsterdam' },
+  { id: 'Europe/Vienna', name: '빈', country: '오스트리아', timeZone: 'Europe/Vienna' },
+  { id: 'Europe/Moscow', name: '모스크바', country: '러시아', timeZone: 'Europe/Moscow' },
+  { id: 'Europe/Athens', name: '아테네', country: '그리스', timeZone: 'Europe/Athens' },
+  { id: 'Europe/Lisbon', name: '리스본', country: '포르투갈', timeZone: 'Europe/Lisbon' },
+  { id: 'Europe/Dublin', name: '더블린', country: '아일랜드', timeZone: 'Europe/Dublin' },
+  { id: 'Europe/Stockholm', name: '스톡홀름', country: '스웨덴', timeZone: 'Europe/Stockholm' },
+  { id: 'Europe/Warsaw', name: '바르샤바', country: '폴란드', timeZone: 'Europe/Warsaw' },
+  { id: 'Europe/Prague', name: '프라하', country: '체코', timeZone: 'Europe/Prague' },
+  // 아프리카
+  { id: 'Africa/Cairo', name: '카이로', country: '이집트', timeZone: 'Africa/Cairo' },
+  { id: 'Africa/Johannesburg', name: '요하네스버그', country: '남아프리카', timeZone: 'Africa/Johannesburg' },
+  { id: 'Africa/Lagos', name: '라고스', country: '나이지리아', timeZone: 'Africa/Lagos' },
+  { id: 'Africa/Nairobi', name: '나이로비', country: '케냐', timeZone: 'Africa/Nairobi' },
+  // 북미 — 2026 월드컵 개최 도시 포함
+  { id: 'America/New_York', name: '뉴욕', country: '미국', timeZone: 'America/New_York' },
+  { id: 'America/Los_Angeles', name: '로스앤젤레스', country: '미국', timeZone: 'America/Los_Angeles' },
+  { id: 'America/Chicago', name: '시카고', country: '미국', timeZone: 'America/Chicago' },
+  { id: 'America/Denver', name: '덴버', country: '미국', timeZone: 'America/Denver' },
+  { id: 'America/Atlanta', name: '애틀랜타', country: '미국 (월드컵)', timeZone: 'America/New_York' },
+  { id: 'America/Boston', name: '보스턴', country: '미국 (월드컵)', timeZone: 'America/New_York' },
+  { id: 'America/Dallas', name: '달라스', country: '미국 (월드컵)', timeZone: 'America/Chicago' },
+  { id: 'America/Houston', name: '휴스턴', country: '미국 (월드컵)', timeZone: 'America/Chicago' },
+  { id: 'America/Kansas_City', name: '캔자스시티', country: '미국 (월드컵)', timeZone: 'America/Chicago' },
+  { id: 'America/Miami', name: '마이애미', country: '미국 (월드컵)', timeZone: 'America/New_York' },
+  { id: 'America/Philadelphia', name: '필라델피아', country: '미국 (월드컵)', timeZone: 'America/New_York' },
+  { id: 'America/San_Francisco', name: '샌프란시스코', country: '미국 (월드컵)', timeZone: 'America/Los_Angeles' },
+  { id: 'America/Seattle', name: '시애틀', country: '미국 (월드컵)', timeZone: 'America/Los_Angeles' },
+  { id: 'America/Toronto', name: '토론토', country: '캐나다 (월드컵)', timeZone: 'America/Toronto' },
+  { id: 'America/Vancouver', name: '밴쿠버', country: '캐나다 (월드컵)', timeZone: 'America/Vancouver' },
+  { id: 'America/Mexico_City', name: '멕시코시티', country: '멕시코 (월드컵)', timeZone: 'America/Mexico_City' },
+  { id: 'America/Guadalajara', name: '과달라하라', country: '멕시코 (월드컵)', timeZone: 'America/Mexico_City' },
+  { id: 'America/Monterrey', name: '몬테레이', country: '멕시코 (월드컵)', timeZone: 'America/Monterrey' },
+  // 중남미
+  { id: 'America/Sao_Paulo', name: '상파울루', country: '브라질', timeZone: 'America/Sao_Paulo' },
+  { id: 'America/Buenos_Aires', name: '부에노스아이레스', country: '아르헨티나', timeZone: 'America/Argentina/Buenos_Aires' },
+  { id: 'America/Lima', name: '리마', country: '페루', timeZone: 'America/Lima' },
+  { id: 'America/Bogota', name: '보고타', country: '콜롬비아', timeZone: 'America/Bogota' },
+  { id: 'America/Santiago', name: '산티아고', country: '칠레', timeZone: 'America/Santiago' },
+];
+
+const CLOCK_STORAGE_KEY = 'jiobi_clock_selected_cities';
+const CLOCK_MAIN_CITY_KEY = 'jiobi_clock_main_city';
+
 interface Alarm {
   id: string;
   hour: number;
@@ -39,7 +116,14 @@ export default function ClockPage() {
   const [activeTab, setActiveTab] = useState<TabType>('clock');
   const [is24Hour, setIs24Hour] = useState(false);
   const [timezone, setTimezone] = useState('Asia/Seoul');
+  /** 세계 시계에 표시할 도시 id 목록 (여러 개 선택 가능, localStorage 연동) */
+  const [selectedCityIds, setSelectedCityIds] = useState<string[]>(['Asia/Seoul']);
+  /** 주 시계(디지털/아날로그)에 표시할 도시 id (선택한 도시 중 하나, localStorage 연동) */
+  const [mainCityId, setMainCityId] = useState<string>('Asia/Seoul');
   const [digitalTime, setDigitalTime] = useState('오후 00:00:00');
+  const [clockTick, setClockTick] = useState(0);
+  /** 서버/클라이언트 날짜·시간 불일치로 인한 hydration 에러 방지: 마운트 후에만 날짜·시간 표시 */
+  const [isMounted, setIsMounted] = useState(false);
   const analogClockRef = useRef<HTMLCanvasElement>(null);
   
   // 알람 상태
@@ -87,6 +171,54 @@ export default function ClockPage() {
     setStopwatches(prev => [...prev, newStopwatch]);
   }, []);
   
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // 세계 시계 선택 도시 로드/저장
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' && window.localStorage.getItem(CLOCK_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((id: unknown) => typeof id === 'string')) {
+          const valid = parsed.filter((id: string) => WORLD_CITIES.some((c) => c.id === id));
+          if (valid.length > 0) setSelectedCityIds(valid);
+        }
+      }
+    } catch (_) {}
+  }, []);
+  useEffect(() => {
+    if (selectedCityIds.length === 0) return;
+    try {
+      window.localStorage.setItem(CLOCK_STORAGE_KEY, JSON.stringify(selectedCityIds));
+    } catch (_) {}
+  }, [selectedCityIds]);
+
+  // 주 시계 도시 로드/저장
+  useEffect(() => {
+    try {
+      const saved = typeof window !== 'undefined' && window.localStorage.getItem(CLOCK_MAIN_CITY_KEY);
+      if (saved && WORLD_CITIES.some((c) => c.id === saved)) setMainCityId(saved);
+    } catch (_) {}
+  }, []);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CLOCK_MAIN_CITY_KEY, mainCityId);
+    } catch (_) {}
+  }, [mainCityId]);
+
+  // 선택 목록에서 제거된 도시면 주 시계 도시를 첫 번째로; timezone은 주 시계 도시 기준
+  useEffect(() => {
+    if (selectedCityIds.length === 0) return;
+    if (!selectedCityIds.includes(mainCityId)) {
+      setMainCityId(selectedCityIds[0]);
+      return;
+    }
+    const main = WORLD_CITIES.find((c) => c.id === mainCityId);
+    if (main) setTimezone(main.timeZone);
+  }, [selectedCityIds.join(','), mainCityId]);
+
   // 초기화: 현재 시간으로 알람 설정 및 오디오 초기화
   useEffect(() => {
     const now = new Date();
@@ -515,6 +647,7 @@ export default function ClockPage() {
     const interval = setInterval(() => {
       updateDigitalClock();
       drawAnalogClock();
+      setClockTick((t) => t + 1);
     }, 1000);
 
     updateDigitalClock();
@@ -591,16 +724,91 @@ export default function ClockPage() {
     return () => clearInterval(updateStopwatches);
   }, []);
 
-  const getTimeOffsetMillis = (tz: string) => {
-    const offsets: Record<string, number> = {
-      "Asia/Seoul": 9,
-      "America/New_York": -4,
-      "Europe/London": 0,
-      "Asia/Tokyo": 9,
-      "America/Los_Angeles": -7,
-    };
-    return (offsets[tz] || 0) * 3600000;
+  /** IANA 타임존의 UTC 대비 오프셋(시간). Intl로 계산 (서머타임 반영) */
+  const getTimezoneOffsetHours = (tz: string): number => {
+    try {
+      const now = new Date();
+      const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+      });
+      const parts = fmt.formatToParts(now);
+      const hour = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+      const minute = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+      const tzMins = hour * 60 + minute;
+      const utcMins = now.getUTCHours() * 60 + now.getUTCMinutes();
+      let diff = tzMins - utcMins;
+      if (diff > 720) diff -= 1440;
+      if (diff < -720) diff += 1440;
+      return diff / 60;
+    } catch {
+      return 0;
+    }
   };
+
+  const getTimeOffsetMillis = (tz: string) => getTimezoneOffsetHours(tz) * 3600000;
+
+  /** 서울 대비 시차(시간). 양수=서울보다 빠름, 음수=서울보다 느림 */
+  const getOffsetHoursFromSeoul = (tz: string): number => {
+    const seoul = getTimezoneOffsetHours('Asia/Seoul');
+    const city = getTimezoneOffsetHours(tz);
+    return city - seoul;
+  };
+
+  /** 해당 타임존의 현재 시각 문자열 (12/24시간 형식) */
+  const getTimeStringInZone = (tz: string, use24: boolean): string => {
+    try {
+      const now = new Date();
+      const opts: Intl.DateTimeFormatOptions = {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: !use24,
+      };
+      return new Intl.DateTimeFormat('ko-KR', opts).format(now);
+    } catch {
+      return '--:--:--';
+    }
+  };
+
+  /** 해당 타임존 기준 오늘/어제/내일 (서울 기준 날짜와 비교) */
+  const getRelativeDay = (tz: string): string => {
+    try {
+      const now = new Date();
+      const seoulDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+      const tzDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+      if (tzDate === seoulDate) return '오늘';
+      const seoulD = new Date(seoulDate);
+      const tzD = new Date(tzDate);
+      const diff = Math.round((tzD.getTime() - seoulD.getTime()) / 86400000);
+      if (diff === -1) return '어제';
+      if (diff === 1) return '내일';
+      return tzDate;
+    } catch {
+      return '오늘';
+    }
+  };
+
+  /** 해당 타임존 기준 날짜 문자열 (예: 2026년 3월 11일) */
+  const getDateStringInZone = (tz: string): string => {
+    try {
+      const now = new Date();
+      return new Intl.DateTimeFormat('ko-KR', {
+        timeZone: tz,
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }).format(now);
+    } catch {
+      return '';
+    }
+  };
+
+  /** 도시 목록 한글 이름 오름차순 정렬 */
+  const worldCitiesSorted = [...WORLD_CITIES].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
   const pad = (n: number) => n.toString().padStart(2, "0");
 
@@ -1132,27 +1340,126 @@ export default function ClockPage() {
 
         {/* 시계 탭 */}
         {activeTab === 'clock' && (
-          <div className="flex flex-col gap-8 max-w-3xl mx-auto">
+          <div className="flex flex-col gap-8 max-w-5xl mx-auto">
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
               <h3 className="text-xl font-semibold mb-4">디지털 시계</h3>
-              <div className="text-5xl font-bold text-[#373e56] mb-4">{digitalTime}</div>
-              <div className="flex justify-center items-center gap-2 mb-4">
-                <label htmlFor="timezone" className="text-sm font-medium">시간대 선택:</label>
-                <select 
-                  id="timezone" 
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="border rounded px-2 py-1 text-sm"
-                >
-                  <option value="Asia/Seoul">서울</option>
-                </select>
+              {(() => {
+                const effectiveMainId = selectedCityIds.includes(mainCityId) ? mainCityId : selectedCityIds[0];
+                const mainCity = WORLD_CITIES.find((c) => c.id === effectiveMainId);
+                return (
+                  <>
+                    <div className="flex flex-wrap justify-center items-center gap-3 mb-2">
+                      <label htmlFor="main-city" className="text-sm font-medium text-gray-600">주 시계 도시:</label>
+                      <select
+                        id="main-city"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[200px]"
+                        value={effectiveMainId}
+                        onChange={(e) => setMainCityId(e.target.value)}
+                      >
+                        {[...selectedCityIds]
+                          .map((id) => WORLD_CITIES.find((c) => c.id === id))
+                          .filter(Boolean)
+                          .sort((a, b) => (a!.name).localeCompare(b!.name, 'ko'))
+                          .map((city) => (
+                            <option key={city!.id} value={city!.id}>
+                              {city!.name}, {city!.country}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    {mainCity && (
+                      <p className="text-gray-600 text-sm mb-2">
+                        {mainCity.name}, {mainCity.country}
+                        {isMounted ? ` · ${getDateStringInZone(mainCity.timeZone)}` : ''}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+              <div className="text-5xl font-bold text-[#373e56] mb-4">
+                {isMounted ? digitalTime : '--:--:--'}
               </div>
               <button 
                 onClick={() => setIs24Hour(!is24Hour)}
                 className="bg-[#373e56] text-white px-4 py-2 rounded-full hover:bg-[#2a3142]"
               >
-                형식 변환
+                12/24시간 형식 변환
               </button>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <h3 className="text-xl font-semibold">세계 시계</h3>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="add-city" className="text-sm font-medium text-gray-600">도시 추가:</label>
+                  <select
+                    id="add-city"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[180px]"
+                    value=""
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      if (id && !selectedCityIds.includes(id)) {
+                        setSelectedCityIds((prev) => [...prev, id]);
+                      }
+                      e.target.value = '';
+                    }}
+                  >
+                    <option value="">선택하세요</option>
+                    {worldCitiesSorted.filter((c) => !selectedCityIds.includes(c.id)).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}, {c.country}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-gray-500 text-sm mb-4">
+                {isMounted
+                  ? new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                  : ''}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {selectedCityIds.map((cityId) => {
+                  const city = WORLD_CITIES.find((c) => c.id === cityId);
+                  if (!city) return null;
+                  const tz = city.timeZone;
+                  const offsetHours = getOffsetHoursFromSeoul(tz);
+                  const offsetStr = offsetHours === 0 ? '+0시간' : offsetHours > 0 ? `+${offsetHours}시간` : `${offsetHours}시간`;
+                  return (
+                    <div
+                      key={cityId}
+                      className="border border-gray-200 rounded-xl p-4 bg-gray-50 hover:bg-gray-100 transition-colors flex flex-col"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <h4 className="font-semibold text-[#373e56]">{city.name}</h4>
+                          <p className="text-sm text-gray-500">{city.country}</p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="제거"
+                          className="text-gray-400 hover:text-red-600 p-1 rounded"
+                          onClick={() => {
+                            const next = selectedCityIds.filter((id) => id !== cityId);
+                            setSelectedCityIds(next.length > 0 ? next : ['Asia/Seoul']);
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {isMounted ? `${getDateStringInZone(tz)} (${getRelativeDay(tz)})` : '—'}
+                      </div>
+                      <div className="text-2xl font-bold text-[#373e56] mt-1">
+                        {isMounted ? getTimeStringInZone(tz, is24Hour) : '--:--:--'}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        서울 대비 {offsetStr}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">

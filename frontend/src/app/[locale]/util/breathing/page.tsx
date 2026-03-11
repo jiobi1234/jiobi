@@ -82,7 +82,16 @@ export default function BreathingPage() {
 
   useEffect(() => {
     loadSavedPatterns();
-    
+
+    // 탭 포커스/복귀 시 저장된 패턴 다시 로드 (다른 탭에서 저장했거나, 루트에서 진입 시 타이밍 이슈 대비)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') loadSavedPatterns();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  useEffect(() => {
     // 오디오 초기화
     inhaleSoundRef.current = new Audio('/audio/breathin.mp3');
     exhaleSoundRef.current = new Audio('/audio/breathout.mp3');
@@ -313,6 +322,7 @@ export default function BreathingPage() {
   }, [screen, currentInhale, currentHold1, currentExhale, currentHold2, selectedDurationMinutes, selectedDurationSeconds]);
 
   const loadSavedPatterns = () => {
+    if (typeof window === 'undefined' || !window.localStorage) return;
     try {
       const raw = localStorage.getItem('jiobi_breathing_patterns');
       if (raw) {
@@ -450,28 +460,34 @@ export default function BreathingPage() {
     }, 1000);
   };
 
-  /** stepIndex: 설정할 단계(0~3). ref 기준으로 동작해 클로저 stale 방지 */
+  /** stepIndex: 설정할 단계(0~3). ref 기준으로 동작해 클로저 stale 방지. 0초 단계는 연속으로 건너뛰어 다음 유효 단계로 진행 */
   const startStep = (stepIndex: number) => {
     const config = sessionConfigRef.current;
     if (!config) return;
-    
+
     const steps = [
       { name: 'inhale', text: '들이쉬세요', time: config.inhale, class: 'inhale' },
       { name: 'hold1', text: '멈추세요', time: config.hold1, class: 'hold-large' },
       { name: 'exhale', text: '내쉬세요', time: config.exhale, class: 'exhale' },
       { name: 'hold2', text: '멈추세요', time: config.hold2, class: 'hold-small' }
     ];
-    
-    const step = steps[stepIndex];
-    
-    if (step.time === 0) {
-      nextStep();
-      return;
+
+    let index = stepIndex;
+    let step = steps[index];
+
+    while (step.time === 0) {
+      const nextIndex = index + 1 > 3 ? 0 : index + 1;
+      if (index === 3) setCompletedCyclesCount((c) => c + 1);
+      index = nextIndex;
+      step = steps[index];
+      if (index === stepIndex) return; // 한 바퀴 돌았는데 전부 0초면 종료
     }
-    
+
+    currentStepRef.current = index;
+    setCurrentStep(index);
     stepTimeRemainingRef.current = step.time;
     setStepTimeRemaining(step.time);
-    
+
     if (breathCircleRef.current) {
       const circle = breathCircleRef.current;
       if (step.name.startsWith('hold')) {
@@ -485,7 +501,7 @@ export default function BreathingPage() {
         }, 50);
       }
     }
-    
+
     playSound(step.name);
   };
 
@@ -566,11 +582,23 @@ export default function BreathingPage() {
       alarmSoundRef.current.loop = false;
     }
 
-    // 완료 시 알람 한 번만 재생 (loop=false로 끝나면 자동 정지)
+    // 완료 시 알람 5번 재생
     if (!isMuted && alarmSoundRef.current) {
-      alarmSoundRef.current.loop = false;
-      alarmSoundRef.current.volume = 1.0;
-      alarmSoundRef.current.play().catch(() => {});
+      const alarm = alarmSoundRef.current;
+      alarm.loop = false;
+      alarm.volume = 1.0;
+      let playCount = 0;
+      const onEnded = () => {
+        playCount += 1;
+        if (playCount < 5) {
+          alarm.currentTime = 0;
+          alarm.play().catch(() => {});
+        } else {
+          alarm.removeEventListener('ended', onEnded);
+        }
+      };
+      alarm.addEventListener('ended', onEnded);
+      alarm.play().catch(() => {});
     }
 
     setScreen('completion');
