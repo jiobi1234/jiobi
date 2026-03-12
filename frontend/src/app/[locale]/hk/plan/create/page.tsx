@@ -45,9 +45,16 @@ export default function PlanCreatePage() {
 
   // 지도 기반 자동 장소 탐색
   const [mapViewportCenter, setMapViewportCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapViewportBounds, setMapViewportBounds] = useState<{
+    sw: { lat: number; lng: number };
+    ne: { lat: number; lng: number };
+  } | null>(null);
+  const [mapLevel, setMapLevel] = useState<number>(6);
   const [mapRegionName, setMapRegionName] = useState<string | null>(null);
   const [mapPlaces, setMapPlaces] = useState<Place[]>([]);
   const [mapPlacesLoading, setMapPlacesLoading] = useState(false);
+  const [showSearchThisArea, setShowSearchThisArea] = useState(false);
+  const [lastExternalSearchCenter, setLastExternalSearchCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedMapPlace, setSelectedMapPlace] = useState<Place | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'food' | 'cafe' | 'spot'>('all');
 
@@ -213,67 +220,84 @@ export default function PlanCreatePage() {
     }
   };
 
-  // KakaoMap onIdle → 지도 중심 저장
+  // KakaoMap onIdle → 지도 중심/레벨/뷰포트 저장
   const handleMapIdle = (info: {
     center: { lat: number; lng: number };
     level: number;
     bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } };
   }) => {
     setMapViewportCenter(info.center);
+    setMapViewportBounds({ sw: info.bounds.sw, ne: info.bounds.ne });
+    setMapLevel(info.level);
+
+    // 중심이 이전 외부 검색 중심에서 일정 거리 이상 떨어지면 "이 지역 장소 찾기" 버튼 표시
+    if (lastExternalSearchCenter) {
+      const dLat = info.center.lat - lastExternalSearchCenter.lat;
+      const dLng = info.center.lng - lastExternalSearchCenter.lng;
+      const distanceApprox = Math.sqrt(dLat * dLat + dLng * dLng);
+      if (distanceApprox > 0.02) {
+        setShowSearchThisArea(true);
+      }
+    } else {
+      setShowSearchThisArea(true);
+    }
   };
 
-  // 중심 좌표 기준 역지오코딩 → 해당 지역 주요 장소 검색
+  // 1단계: DB 우선 조회 – 뷰포트 기준 우리 DB에서만 장소 가져오기
   useEffect(() => {
-    if (!mapViewportCenter) return;
-    if (typeof window === 'undefined') return;
+    if (!mapViewportBounds) return;
 
     let cancelled = false;
 
-    const run = () => {
-      const kakao = (window as any).kakao;
-      if (!kakao?.maps?.services) return;
+    const timer = setTimeout(async () => {
+      try {
+        setMapPlacesLoading(true);
+        const res = await apiClient.hk.searchPlacesInViewport({
+          sw: mapViewportBounds.sw,
+          ne: mapViewportBounds.ne,
+          category: selectedCategory,
+          limit: 60,
+          includeExternal: false,
+        });
+        if (cancelled) return;
+        setMapPlaces(res.places || []);
+        setMapRegionName(null);
+      } catch (error) {
+        console.error('뷰포트 기반 DB 장소 검색 중 오류:', error);
+        if (!cancelled) setMapPlaces([]);
+      } finally {
+        if (!cancelled) setMapPlacesLoading(false);
+      }
+    }, 400);
 
-      const geocoder = new kakao.maps.services.Geocoder();
-      const coord = new kakao.maps.LatLng(mapViewportCenter.lat, mapViewportCenter.lng);
-
-      setMapPlacesLoading(true);
-
-      geocoder.coord2RegionCode(
-        coord.getLng(),
-        coord.getLat(),
-        async (result: any[], status: string) => {
-          if (cancelled) return;
-          if (status !== kakao.maps.services.Status.OK || !result || result.length === 0) {
-            setMapPlaces([]);
-            setMapPlacesLoading(false);
-            return;
-          }
-
-          const region1 = result[0].region_1depth_name as string;
-          const region2 = result[0].region_2depth_name as string;
-          const regionText = `${region1} ${region2}`;
-          setMapRegionName(regionText);
-
-          try {
-            const res: SearchPlacesResponse = await apiClient.hk.searchPlaces('', 1, 20, regionText);
-            if (cancelled) return;
-            setMapPlaces(res.places || []);
-          } catch (error) {
-            console.error('지도 기반 장소 검색 중 오류:', error);
-            if (!cancelled) setMapPlaces([]);
-          } finally {
-            if (!cancelled) setMapPlacesLoading(false);
-          }
-        },
-      );
-    };
-
-    const timer = setTimeout(run, 400);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [mapViewportCenter]);
+  }, [mapViewportBounds, selectedCategory]);
+
+  // 2단계: 사용자가 명시적으로 외부 데이터까지 요청할 때 TourAPI/Kakao 기반 검색 트리거
+  const handleSearchThisArea = async () => {
+    if (!mapViewportBounds || !mapViewportCenter) return;
+    try {
+      setMapPlacesLoading(true);
+      const res = await apiClient.hk.searchPlacesInViewport({
+        sw: mapViewportBounds.sw,
+        ne: mapViewportBounds.ne,
+        category: selectedCategory,
+        limit: 80,
+        includeExternal: true,
+      });
+      setMapPlaces(res.places || []);
+      setShowSearchThisArea(false);
+      setLastExternalSearchCenter(mapViewportCenter);
+    } catch (error) {
+      console.error('이 지역 장소 찾기 중 오류:', error);
+      showToast('error', '이 지역의 장소를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setMapPlacesLoading(false);
+    }
+  };
 
   // 지도 추천 장소 카테고리 필터
   const filteredMapPlaces = useMemo(() => {
@@ -305,17 +329,69 @@ export default function PlanCreatePage() {
   );
 
   const mapSuggestionMarkers = useMemo(
-    () =>
-      filteredMapPlaces
-        .filter((p) => p.latitude != null && p.longitude != null)
-        .map((place) => ({
-          lat: place.latitude as number,
-          lng: place.longitude as number,
-          title: getPlaceTitle(place),
-          description: getPlaceAddress(place),
-          onClick: () => setSelectedMapPlace(place),
-        })),
-    [filteredMapPlaces],
+    () => {
+      const base = filteredMapPlaces.filter((p) => p.latitude != null && p.longitude != null);
+      if (!base.length) return [];
+
+      // 줌 레벨에 따라 간단한 그리드 기반 클러스터링
+      let cellSize = 0.002;
+      if (mapLevel <= 5) cellSize = 0.02;
+      else if (mapLevel <= 7) cellSize = 0.01;
+      else if (mapLevel <= 9) cellSize = 0.005;
+
+      type Cluster = { latSum: number; lngSum: number; count: number; places: Place[] };
+      const clusterMap = new Map<string, Cluster>();
+
+      base.forEach((place) => {
+        const lat = place.latitude as number;
+        const lng = place.longitude as number;
+        const key = `${Math.floor(lat / cellSize)}_${Math.floor(lng / cellSize)}`;
+        const existing = clusterMap.get(key);
+        if (existing) {
+          existing.latSum += lat;
+          existing.lngSum += lng;
+          existing.count += 1;
+          existing.places.push(place);
+        } else {
+          clusterMap.set(key, { latSum: lat, lngSum: lng, count: 1, places: [place] });
+        }
+      });
+
+      const markers: {
+        lat: number;
+        lng: number;
+        title?: string;
+        description?: string;
+        onClick?: () => void;
+        clusterCount?: number;
+      }[] = [];
+
+      clusterMap.forEach((cluster) => {
+        const centerLat = cluster.latSum / cluster.count;
+        const centerLng = cluster.lngSum / cluster.count;
+        if (cluster.count === 1) {
+          const place = cluster.places[0];
+          markers.push({
+            lat: place.latitude as number,
+            lng: place.longitude as number,
+            title: getPlaceTitle(place),
+            description: getPlaceAddress(place),
+            onClick: () => setSelectedMapPlace(place),
+          });
+        } else {
+          markers.push({
+            lat: centerLat,
+            lng: centerLng,
+            title: `${cluster.places[0]?.title || cluster.places[0]?.place_name || ''} 외 ${cluster.count - 1}곳`,
+            description: '지도를 더 확대하면 개별 장소가 보여요.',
+            clusterCount: cluster.count,
+          });
+        }
+      });
+
+      return markers;
+    },
+    [filteredMapPlaces, mapLevel],
   );
 
   const combinedMarkers = useMemo(
@@ -528,6 +604,18 @@ export default function PlanCreatePage() {
               {mapPlacesLoading && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 mx-auto w-max rounded-full bg-black/65 px-4 py-1.5 text-[11px] text-white">
                   이 주변의 주요 장소를 불러오는 중입니다...
+                </div>
+              )}
+              {showSearchThisArea && !mapPlacesLoading && (
+                <div className="absolute left-1/2 top-16 z-20 -translate-x-1/2">
+                  <button
+                    type="button"
+                    onClick={handleSearchThisArea}
+                    className="inline-flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-xs font-medium text-slate-800 shadow-md ring-1 ring-slate-200 hover:bg-slate-50"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    이 지역 장소 찾기
+                  </button>
                 </div>
               )}
 

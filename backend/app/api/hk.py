@@ -76,6 +76,41 @@ async def search_places(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/places/viewport")
+async def search_places_in_viewport(
+    sw_lat: float = Query(..., description="남서쪽 위도"),
+    sw_lng: float = Query(..., description="남서쪽 경도"),
+    ne_lat: float = Query(..., description="북동쪽 위도"),
+    ne_lng: float = Query(..., description="북동쪽 경도"),
+    category: Optional[str] = Query(None, description="카테고리 (food/cafe/spot 등)"),
+    limit: int = Query(50, description="최대 개수"),
+    include_external: bool = Query(False, description="외부 API(Tour/Kakao)로 결과 보강 여부"),
+):
+    """
+    지도 뷰포트(위경도 박스) 기준 장소 검색.
+    - 기본적으로 MongoDB places 컬렉션에서만 조회 (DB 우선).
+    - include_external=True 일 때, 결과가 부족하면 Tour/Kakao 기반 search_places 결과를 재사용하여 보강.
+    """
+    from app.services.place_service import PlaceService
+
+    place_service = PlaceService()
+    try:
+        result = await place_service.search_places_in_viewport(
+            sw_lat=sw_lat,
+            sw_lng=sw_lng,
+            ne_lat=ne_lat,
+            ne_lng=ne_lng,
+            category=category,
+            limit=limit,
+            include_external=include_external,
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/place/{place_id}")
 async def get_place_detail(place_id: str):
     """장소 상세 정보"""

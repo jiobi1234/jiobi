@@ -339,6 +339,141 @@ class PlaceService:
                 "total": 0,
                 "cached": False
             }
+
+    async def search_places_in_viewport(
+        self,
+        sw_lat: float,
+        sw_lng: float,
+        ne_lat: float,
+        ne_lng: float,
+        category: Optional[str] = None,
+        limit: int = 50,
+        include_external: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        지도 뷰포트(위경도 범위) 기준 장소 검색.
+        1) 우리 MongoDB places 컬렉션에서 위경도 박스 안의 장소를 먼저 조회.
+        2) include_external=True 이고, 결과가 부족하면 기존 search_places 로 외부 API(Tour/Kakao)를 호출해 보강.
+        """
+        try:
+            places_col = self.db.places
+
+            query: Dict[str, Any] = {
+                "latitude": {"$gte": float(sw_lat), "$lte": float(ne_lat)},
+                "longitude": {"$gte": float(sw_lng), "$lte": float(ne_lng)},
+            }
+
+            if category:
+                # 기본 category 필드 또는 google_types 에 포함된 값으로 필터링
+                query["$or"] = [
+                    {"category": category},
+                    {"google_types": {"$regex": category, "$options": "i"}},
+                ]
+
+            docs = list(
+                places_col.find(query).limit(limit)
+            )
+
+            internal_places: List[Dict[str, Any]] = []
+            for doc in docs:
+                if not isinstance(doc, dict):
+                    continue
+                doc = dict(doc)
+                doc.pop("_id", None)
+                internal_places.append(doc)
+
+            internal_places = self._add_display_fields_to_places(internal_places)
+
+            # DB 결과만으로 충분하면 그대로 반환
+            if not include_external or len(internal_places) >= limit:
+                return {
+                    "places": internal_places,
+                    "source": "internal",
+                    "total": len(internal_places),
+                    "from_cache": True,
+                }
+
+            # 외부 API 호출로 보강 (기존 search_places 재사용)
+            # 지역 정보는 뷰포트 중심의 위도 기반으로 대략적인 지역명을 추정하거나, 클라이언트에서 전달한 category 만 사용
+            # 여기서는 keyword/region 없이 전국 검색 후, 위경도 박스로 다시 필터링
+            external_result = await self.search_places(
+                keyword="",
+                page=1,
+                limit=limit,
+            )
+            external_places_raw: List[Dict[str, Any]] = external_result.get("places", []) or []
+
+            # 위경도 박스 안에 있는 외부 장소만 선택
+            external_in_view: List[Dict[str, Any]] = []
+            for p in external_places_raw:
+                try:
+                    lat = float(p.get("latitude"))
+                    lng = float(p.get("longitude"))
+                except (TypeError, ValueError):
+                    continue
+                if not (sw_lat <= lat <= ne_lat and sw_lng <= lng <= ne_lng):
+                    continue
+                if category:
+                    cat = f"{p.get('category','')} {' '.join(p.get('google_types',[]) or [])}".lower()
+                    if category == "food" and not any(k in cat for k in ["food", "restaurant", "음식", "식당"]):
+                        continue
+                    if category == "cafe" and "cafe" not in cat and "카페" not in cat:
+                        continue
+                    if category == "spot" and not any(k in cat for k in ["tour", "attraction", "명소", "관광"]):
+                        continue
+                external_in_view.append(p)
+
+            # DB에 upsert (캐시) 후, display 필드 추가
+            enriched_external: List[Dict[str, Any]] = []
+            for p in external_in_view:
+                if not isinstance(p, dict):
+                    continue
+                item = dict(p)
+                place_id_value = item.get("place_id") or item.get("id")
+                if place_id_value:
+                    item["place_id"] = str(place_id_value)
+                    try:
+                        places_col.update_one(
+                            {"place_id": item["place_id"]},
+                            {
+                                "$set": {**item, "updated_at": datetime.utcnow()},
+                                "$setOnInsert": {"created_at": datetime.utcnow()},
+                            },
+                            upsert=True,
+                        )
+                    except Exception as e:
+                        logger.warning(f"Viewport external place upsert 실패: {e}")
+                enriched_external.append(item)
+
+            enriched_external = self._add_display_fields_to_places(enriched_external)
+
+            # 내부 + 외부 결과 합치고 중복 제거
+            combined = internal_places + enriched_external
+            # 간단한 중복 제거 (place_id 기준)
+            seen_ids: set[str] = set()
+            unique_combined: List[Dict[str, Any]] = []
+            for p in combined:
+                pid = str(p.get("place_id") or p.get("id") or "")
+                key = pid or f"{p.get('title') or p.get('place_name') or ''}|{p.get('address') or p.get('address_name') or ''}"
+                if not key or key in seen_ids:
+                    continue
+                seen_ids.add(key)
+                unique_combined.append(p)
+
+            return {
+                "places": unique_combined[:limit],
+                "source": "internal+external" if enriched_external else "internal",
+                "total": len(unique_combined),
+                "from_cache": False,
+            }
+        except Exception as e:
+            logger.error(f"뷰포트 기준 장소 검색 실패: {e}")
+            return {
+                "places": internal_places if 'internal_places' in locals() else [],
+                "source": "internal",
+                "total": len(internal_places) if 'internal_places' in locals() else 0,
+                "from_cache": True,
+            }
     
     async def get_place_detail(self, place_id: str) -> Optional[Dict[str, Any]]:
         """

@@ -50,6 +50,33 @@ export class HkClient extends BaseApiClient {
   }
 
   /**
+   * 지도 뷰포트(위경도 범위) 기준 장소 검색
+   * - 기본은 DB 우선 조회
+   * - includeExternal=true 일 때만 외부 API(Tour/Tour+Kakao)로 보강
+   */
+  async searchPlacesInViewport(options: {
+    sw: { lat: number; lng: number };
+    ne: { lat: number; lng: number };
+    category?: 'all' | 'food' | 'cafe' | 'spot';
+    limit?: number;
+    includeExternal?: boolean;
+  }): Promise<SearchPlacesResponse & { source?: string }> {
+    const { sw, ne, category, limit = 50, includeExternal = false } = options;
+    const params: any = {
+      sw_lat: sw.lat,
+      sw_lng: sw.lng,
+      ne_lat: ne.lat,
+      ne_lng: ne.lng,
+      limit,
+      include_external: includeExternal,
+    };
+    if (category && category !== 'all') {
+      params.category = category;
+    }
+    return this.get<SearchPlacesResponse & { source?: string }>('/hk/places/viewport', params);
+  }
+
+  /**
    * 장소 상세 정보
    */
   async getPlaceDetail(placeId: string): Promise<Place> {

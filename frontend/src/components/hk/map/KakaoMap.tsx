@@ -14,6 +14,8 @@ export interface KakaoMapMarkerData {
   number?: number;
   /** 내 위치 마커 (파란 점으로 표시) */
   isMyLocation?: boolean;
+  /** 클러스터 마커일 때 포함된 장소 수 */
+  clusterCount?: number;
 }
 
 export interface KakaoMapProps {

@@ -21,6 +21,8 @@ export interface KakaoMapMarker {
   day?: number; // Day별 마커 색상 구분용
   number?: number; // 경유지 순서 (1, 2, 3...) - 번호 마커
   isMyLocation?: boolean; // 내 위치 마커 (파란 점)
+   /** 클러스터 마커일 때 포함된 장소 수 */
+  clusterCount?: number;
 }
 
 export interface UseKakaoMapOptions {
@@ -174,6 +176,26 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
               <circle cx="20" cy="20" r="18" fill="#1890ff" fill-opacity="0.2" stroke="#1890ff" stroke-width="2"/>
               <circle cx="20" cy="20" r="6" fill="#1890ff" stroke="#ffffff" stroke-width="2"/>
+            </svg>
+          `;
+          const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+          const size = new maps.Size(40, 40);
+          const offset = new maps.Point(20, 20);
+          const image = new maps.MarkerImage(src, size, { offset });
+          markerOptions.image = image;
+        } else if (markerData.clusterCount && markerData.clusterCount > 1) {
+          // 클러스터 마커: 포함된 장소 수를 큰 원 안에 표시
+          const count = markerData.clusterCount;
+          const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+              <defs>
+                <linearGradient id="clusterGradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#0ea5e9" />
+                  <stop offset="100%" stop-color="#22c55e" />
+                </linearGradient>
+              </defs>
+              <circle cx="20" cy="20" r="18" fill="url(#clusterGradient)" stroke="#ffffff" stroke-width="2"/>
+              <text x="20" y="23" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="bold" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">${count}</text>
             </svg>
           `;
           const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
