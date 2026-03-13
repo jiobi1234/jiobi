@@ -99,120 +99,133 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50">
-      <div
-        className="hidden min-[481px]:flex flex-[0_0_60%] min-[481px]:max-md:flex-[0_0_40%] md:flex-[0_0_60%] bg-cover bg-center items-start p-5"
-        style={{
-          backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1547036967-23d11aacaee0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')",
-        }}
-      >
-        <HKBackButton />
-      </div>
+    <div className="flex w-full justify-center">
+      <div className="w-full max-w-md sm:max-w-lg">
+        <div className="mb-4 flex items-center gap-2">
+          <HKBackButton />
+          <span className="text-xs font-medium text-slate-500">로그인</span>
+        </div>
 
-      <div className="flex flex-1 flex-col justify-center items-center p-6 md:p-10">
-        <div className="w-full max-w-xl bg-white rounded-2xl shadow-md p-6 sm:p-10">
-          <div className="text-3xl font-bold text-slate-800 text-center mb-8">JIOBI</div>
-
-          <form onSubmit={handleSubmit}>
-            {(error || Object.keys(errors).length > 0) && (
-              <div className="mb-5">
-                {error && (
-                  <div className="py-3 px-4 rounded-xl mb-2.5 font-medium bg-red-100 text-red-800 border border-red-200">
-                    {error}
-                  </div>
-                )}
-                {errors.username && (
-                  <div className="py-3 px-4 rounded-xl mb-2.5 font-medium bg-red-100 text-red-800 border border-red-200">
-                    {errors.username}
-                  </div>
-                )}
-                {errors.password && (
-                  <div className="py-3 px-4 rounded-xl mb-2.5 font-medium bg-red-100 text-red-800 border border-red-200">
-                    {errors.password}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="mb-6 flex items-center gap-4">
-              <label className="text-slate-800 font-medium min-w-[80px]" htmlFor="username">
-                {t('usernameLabel')}
-              </label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                placeholder={t('usernamePlaceholder')}
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (errors.username) setFieldTouched('username', true);
-                }}
-                onBlur={() => setFieldTouched('username', true)}
-                className="flex-1 py-3.5 border-0 border-b-2 border-slate-200 bg-transparent text-slate-800 focus:outline-none focus:border-slate-800"
-                required
-              />
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">
+              JIOBI TRAVEL
             </div>
-
-            <div className="mb-6 flex items-center gap-4">
-              <label className="text-slate-800 font-medium min-w-[80px]" htmlFor="password">
-                {t('passwordLabel')}
-              </label>
-              <div className="flex-1 relative flex items-center">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  placeholder={t('passwordPlaceholder')}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setFieldTouched('password', true);
-                  }}
-                  onBlur={() => setFieldTouched('password', true)}
-                  className="w-full py-3.5 border-0 border-b-2 border-slate-200 bg-transparent text-slate-800 focus:outline-none focus:border-slate-800 pr-20"
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute right-0 py-1.5 pl-2.5 text-slate-500 text-sm hover:text-slate-900"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                >
-                  {showPassword ? '숨기기' : '보기'}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3.5 bg-white text-slate-800 border border-slate-800 rounded-xl font-medium hover:bg-slate-800 hover:text-white transition mb-5 disabled:opacity-50"
-              disabled={loading}
-            >
-              {loading ? t('buttonLoading') : t('button')}
-            </button>
-          </form>
-
-          <div className="text-center mb-8">
-            <Link
-              href={`/${locale}/hk/signup`}
-              className="text-slate-800 no-underline hover:underline"
-            >
-              {t('signupLink')}
-            </Link>
+            <h1 className="mt-1 text-lg sm:text-xl font-semibold text-slate-900">
+              계정으로 로그인
+            </h1>
+            <p className="mt-1 text-xs text-slate-500">
+              맞춤 여행 계획을 저장하고 언제든 다시 불러올 수 있어요.
+            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="w-full py-3.5 bg-white text-slate-800 border-0 rounded-xl font-medium flex items-center justify-center gap-2.5 hover:bg-slate-100 transition"
-          >
-            <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold">
-              G
-            </span>
-            {t('googleButton')}
-          </button>
+          <div className="px-6 py-5 sm:px-7 sm:py-6">
+            <form onSubmit={handleSubmit}>
+              {(error || Object.keys(errors).length > 0) && (
+                <div className="mb-4 space-y-2">
+                  {error && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-rose-800">
+                      {error}
+                    </div>
+                  )}
+                  {errors.username && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-rose-800">
+                      {errors.username}
+                    </div>
+                  )}
+                  {errors.password && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-rose-800">
+                      {errors.password}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-slate-700" htmlFor="username">
+                    {t('usernameLabel')}
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder={t('usernamePlaceholder')}
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      if (errors.username) setFieldTouched('username', true);
+                    }}
+                    onBlur={() => setFieldTouched('username', true)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-slate-700" htmlFor="password">
+                    {t('passwordLabel')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      name="password"
+                      placeholder={t('passwordPlaceholder')}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errors.password) setFieldTouched('password', true);
+                      }}
+                      onBlur={() => setFieldTouched('password', true)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-[11px] font-medium text-slate-500 hover:text-slate-900"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                    >
+                      {showPassword ? '숨기기' : '보기'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="mt-6 w-full rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:bg-slate-400"
+                disabled={loading}
+              >
+                {loading ? t('buttonLoading') : t('button')}
+              </button>
+            </form>
+
+            <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+              <span>아직 계정이 없나요?</span>
+              <Link
+                href={`/${locale}/hk/signup`}
+                className="font-medium text-sky-600 hover:text-sky-700"
+              >
+                {t('signupLink')}
+              </Link>
+            </div>
+
+            <div className="mt-6 border-t border-dashed border-slate-200 pt-4">
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold text-white">
+                  G
+                </span>
+                {t('googleButton')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

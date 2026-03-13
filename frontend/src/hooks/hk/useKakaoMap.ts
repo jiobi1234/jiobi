@@ -21,8 +21,12 @@ export interface KakaoMapMarker {
   day?: number; // Day별 마커 색상 구분용
   number?: number; // 경유지 순서 (1, 2, 3...) - 번호 마커
   isMyLocation?: boolean; // 내 위치 마커 (파란 점)
-   /** 클러스터 마커일 때 포함된 장소 수 */
+  /** 클러스터 마커일 때 포함된 장소 수 */
   clusterCount?: number;
+  /** 카테고리 기반 스마트 마커용 타입 */
+  kind?: 'food' | 'cafe' | 'stay' | 'spot' | 'other';
+  /** 스마트 마커에서 하단에 표시할 라벨 텍스트 */
+  label?: string;
 }
 
 export interface UseKakaoMapOptions {
@@ -230,6 +234,52 @@ export function useKakaoMap(options: UseKakaoMapOptions = {}): UseKakaoMapReturn
           const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
           const size = new maps.Size(32, 32);
           const offset = new maps.Point(16, 32);
+          const image = new maps.MarkerImage(src, size, { offset });
+          markerOptions.image = image;
+        } else if (markerData.kind) {
+          // 카테고리 기반 스마트 마커 (원형 아이콘 + 넓은 라벨)
+          const kind = markerData.kind;
+          let bgColor = '#0ea5e9';
+          let emoji = '●';
+          if (kind === 'food') {
+            bgColor = '#f97316';
+            emoji = '🍽';
+          } else if (kind === 'cafe') {
+            bgColor = '#8b5cf6';
+            emoji = '☕';
+          } else if (kind === 'stay') {
+            bgColor = '#0ea5e9';
+            emoji = '🏨';
+          } else if (kind === 'spot') {
+            bgColor = '#22c55e';
+            emoji = '⭐';
+          } else {
+            bgColor = '#64748b';
+            emoji = '●';
+          }
+          const rawLabel = (markerData.label || markerData.title || '').trim();
+          const label = rawLabel.length > 8 ? `${rawLabel.slice(0, 8)}…` : rawLabel;
+          const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="96" height="64" viewBox="0 0 96 64">
+              <g>
+                <circle cx="48" cy="14" r="12" fill="${bgColor}" />
+                <text x="48" y="19" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="bold"
+                  font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+                  ${emoji}
+                </text>
+              </g>
+              <g>
+                <rect x="8" y="28" width="80" height="24" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5" />
+                <text x="48" y="43" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="500"
+                  font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+                  ${label}
+                </text>
+              </g>
+            </svg>
+          `;
+          const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+          const size = new maps.Size(96, 64);
+          const offset = new maps.Point(48, 32);
           const image = new maps.MarkerImage(src, size, { offset });
           markerOptions.image = image;
         }

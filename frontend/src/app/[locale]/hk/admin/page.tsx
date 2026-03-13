@@ -8,7 +8,6 @@ import { getStringParam } from '../../../../utils/typeGuards';
 import { useAdminAuth, useThemeManagement } from '../../../../hooks/admin';
 import ThemeCreateForm from '../../../../components/admin/ThemeCreateForm';
 import ThemeList from '../../../../components/admin/ThemeList';
-import '../../../../styles/hk/admin.css';
 
 export default function AdminPage() {
   const params = useParams();

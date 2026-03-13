@@ -16,6 +16,10 @@ export interface KakaoMapMarkerData {
   isMyLocation?: boolean;
   /** 클러스터 마커일 때 포함된 장소 수 */
   clusterCount?: number;
+  /** 카테고리 기반 스마트 마커 타입 */
+  kind?: 'food' | 'cafe' | 'stay' | 'spot' | 'other';
+  /** 스마트 마커에서 하단에 표시할 라벨 */
+  label?: string;
 }
 
 export interface KakaoMapProps {
@@ -92,6 +96,9 @@ export default function KakaoMap({
         day: m.day,
         number: m.number,
         isMyLocation: m.isMyLocation,
+        clusterCount: m.clusterCount,
+        kind: m.kind,
+        label: m.label,
       });
     });
   }, [isLoaded, markers, addMarker, clearMarkers]);
