@@ -16,7 +16,9 @@ interface BlogInfo {
 
 interface Post {
   title: string;
-  url: string;
+  /** 포스트 상세 URL (API는 link로 올 수 있음) */
+  url?: string;
+  link?: string;
   summary: string;
   thumbnail: string;
 }
@@ -142,7 +144,7 @@ export default function BlogPage() {
               >
                 {t('allPosts')}
               </button>
-            {blogInfo?.categories.map((category) => (
+            {(blogInfo?.categories ?? []).map((category) => (
               <button
                 key={category}
                 onClick={() => handleCategoryClick(category)}
@@ -182,7 +184,7 @@ export default function BlogPage() {
                 </div>
               </div>
             </div>
-          ) : posts.length === 0 ? (
+          ) : (posts ?? []).length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">📝</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -193,9 +195,11 @@ export default function BlogPage() {
               </p>
             </div>
           ) : (
-            posts.map((post, index) => (
+            (posts ?? []).map((post, index) => {
+              const postUrl = post.url || post.link || '#';
+              return (
               <article
-                key={`${post.url}-${index}`}
+                key={`${postUrl}-${index}`}
                 className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition"
               >
                 <div className="flex items-start space-x-4">
@@ -209,7 +213,7 @@ export default function BlogPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                       <a
-                        href={post.url}
+                        href={postUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-blue-600"
@@ -225,7 +229,7 @@ export default function BlogPage() {
                   </div>
                 </div>
               </article>
-            ))
+            ); })
           )}
         </div>
 
@@ -248,7 +252,7 @@ export default function BlogPage() {
               )}
 
               {/* 페이지 번호들 */}
-              {pagination.page_range.map((pageNum) => {
+              {(pagination.page_range ?? []).map((pageNum) => {
                 const shouldShow = 
                   pageNum <= 5 ||
                   pageNum > pagination.total_pages - 5 ||

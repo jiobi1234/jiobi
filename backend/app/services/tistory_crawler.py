@@ -105,6 +105,7 @@ class TistoryCrawler:
             return {
                 "title": title,
                 "link": link,
+                "url": link,
                 "date": date,
                 "summary": summary,
                 "thumbnail": thumbnail
