@@ -13,11 +13,9 @@ npm run dev        # http://localhost:3000
 ```powershell
 cd backend
 .\venv\Scripts\Activate.ps1   # 가상환경 활성화
+venv\Scripts\activate
 
-uvicorn app.main:app `
-  --reload `
-  --host 0.0.0.0 `
-  --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 - 브라우저에서 API 문서: `http://localhost:8000/docs`

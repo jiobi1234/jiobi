@@ -5,6 +5,21 @@ import Navbar from '../../../../components/Navbar';
 import Footer from '../../../../components/Footer';
 import '../../../../styles/util/calculator.css';
 
+/** 숫자 문자열을 천 단위 쉼표로 포맷 (표시용). 비숫자/빈값/Error는 그대로 반환 */
+function formatNumberDisplay(s: string): string {
+  if (s === '' || s === 'Error') return s;
+  const op = s.trim();
+  if (['+', '-', '×', '÷', '%'].includes(op)) return s;
+  const n = parseFloat(s.replace(/,/g, ''));
+  if (Number.isNaN(n)) return s;
+  const [intPart, decPart] = String(n).split('.');
+  const hasMinus = intPart.startsWith('-');
+  const absInt = hasMinus ? intPart.slice(1) : intPart;
+  const formattedInt = absInt.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const joined = (hasMinus ? '-' : '') + formattedInt + (decPart !== undefined ? '.' + decPart : '');
+  return joined;
+}
+
 export default function CalculatorPage() {
   const [firstOperand, setFirstOperand] = useState('');
   const [secondOperand, setSecondOperand] = useState('');
@@ -12,13 +27,20 @@ export default function CalculatorPage() {
   const [resultDisplayed, setResultDisplayed] = useState(false);
   const [calculationHistory, setCalculationHistory] = useState('');
   const [history, setHistory] = useState<string[]>([]);
+  /** 결과 표시 중일 때 위에 보여줄 계산식 (천 단위 포맷 적용) */
+  const [lastExpression, setLastExpression] = useState('');
 
   const updateDisplay = () => {
-    if (resultDisplayed) {
-      return firstOperand;
-    }
+    if (resultDisplayed) return firstOperand;
     return secondOperand || operator || firstOperand || '0';
   };
+
+  /** 계산식 한 줄 표시용 (천 단위 쉼표 적용) */
+  const formattedCalculationLine = [
+    firstOperand ? formatNumberDisplay(firstOperand) : '',
+    operator || '',
+    secondOperand ? formatNumberDisplay(secondOperand) : '',
+  ].filter(Boolean).join(' ');
 
   const appendToHistory = useCallback((expression: string, result: string) => {
     setCalculationHistory(`${expression} =`);
@@ -56,12 +78,14 @@ export default function CalculatorPage() {
     } else {
       setFirstOperand(String(result));
     }
+    const expr = `${formatNumberDisplay(firstOperand)} ${operator} ${formatNumberDisplay(secondOperand)}`;
+    setLastExpression(expr);
     setSecondOperand('');
     setOperator('');
     setResultDisplayed(true);
-    
+
     if (addToHistory && typeof result === 'number' && !isNaN(result)) {
-      appendToHistory(expression, String(result));
+      appendToHistory(expr, formatNumberDisplay(String(result)));
     }
   }, [firstOperand, secondOperand, operator, appendToHistory]);
 
@@ -71,6 +95,7 @@ export default function CalculatorPage() {
         setFirstOperand(value);
         setResultDisplayed(false);
         setCalculationHistory('');
+        setLastExpression('');
       } else {
         if (!operator) {
           setFirstOperand(prev => prev + value);
@@ -103,6 +128,7 @@ export default function CalculatorPage() {
       setOperator('');
       setResultDisplayed(false);
       setCalculationHistory('');
+      setLastExpression('');
     } else if (type === 'clearEntry') {
       if (secondOperand) {
         setSecondOperand('');
@@ -118,14 +144,14 @@ export default function CalculatorPage() {
           const result = Math.sqrt(num);
           setFirstOperand(String(result));
           setResultDisplayed(true);
-          appendToHistory(`√${num}`, String(result));
+          appendToHistory(`√${formatNumberDisplay(firstOperand || '0')}`, formatNumberDisplay(String(result)));
         }
       } else if (value === 'x²') {
         const num = parseFloat(firstOperand || '0');
         const result = num * num;
         setFirstOperand(String(result));
         setResultDisplayed(true);
-        appendToHistory(`${num}²`, String(result));
+        appendToHistory(`${formatNumberDisplay(firstOperand || '0')}²`, formatNumberDisplay(String(result)));
       }
     }
   }, [firstOperand, secondOperand, operator, resultDisplayed, calculate, appendToHistory]);
@@ -200,8 +226,8 @@ export default function CalculatorPage() {
         <h1 className="text-3xl font-bold text-center mb-8">계산기</h1>
         <div className="bg-white rounded-2xl p-8 shadow-sm max-w-md mx-auto">
           <div className="display mb-4">
-            <div className="calculation-history text-sm text-gray-500 mb-1">{calculationHistory}</div>
-            <div className="current-result text-2xl font-bold text-gray-800">{updateDisplay()}</div>
+            <div className="calculation-history text-sm text-gray-500 mb-1">{resultDisplayed ? lastExpression : (formattedCalculationLine || '\u00A0')}</div>
+            <div className="current-result text-2xl font-bold text-gray-800">{formatNumberDisplay(updateDisplay())}</div>
           </div>
           <div className="calculator-grid">
             <div className="calculator-button btn clear" onClick={() => handleButtonClick('C', 'clear')}>C</div>

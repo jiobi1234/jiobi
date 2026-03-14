@@ -1,186 +1,230 @@
-body {
-    font-family: 'Dovemayo_gothic', sans-serif;
+/* ===== 캘린더 페이지 전용 (util/calendar) ===== */
+
+.util-calendar-wrap {
+  --cal-border: 1px solid #e5e7eb;
+  --cal-bg: #fff;
+  --cal-cell-bg: #fafafa;
+  --cal-today-bg: #373e56;
+  --cal-today-text: #fff;
+  --cal-sun: #dc2626;
+  --cal-sat: #2563eb;
+  --cal-holiday: #b91c1c;
+  --cal-holiday-bg: #fef2f2;
+  --cal-text: #374151;
+  --cal-muted: #6b7280;
 }
 
-.sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 100; /* 네비게이션 바가 콘텐츠 위에 표시되도록 함 */
-    padding: 5px 0 0; /* 상단 공간 확보 */
-    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+.util-calendar-card {
+  background: var(--cal-bg);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 1.75rem;
 }
 
-.sidebar-sticky {
-    position: -webkit-sticky;
-    position: sticky;
-    top: 0; /* 뷰포트 상단에 고정 */
-    height: calc(100vh - 48px);
-    padding-top: .5rem;
-    overflow-x: hidden;
-    overflow-y: auto; /* 필요시 내부 스크롤 활성화 */
+.util-calendar-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.nav-link {
-    color: #333;
+.util-calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.nav-link.active {
-    color: #007bff;
+.util-calendar-nav button {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: var(--cal-text);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.card {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.util-calendar-nav button:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #111;
 }
 
-.card-body {
-    padding: 2rem;
+.util-calendar-title {
+  min-width: 140px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--cal-text);
 }
 
-#year-calendar {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3열 그리드 */
-    gap: 20px; /* 그리드 사이의 간격 */
+.util-calendar-title .year {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--cal-muted);
+  margin-bottom: 2px;
 }
 
-.month-calendar {
-    border: 1px solid #ddd; /* 달력 테두리 */
-    padding: 10px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
+.util-calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.month-header {
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 10px;
+.util-calendar-actions .btn-today {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #373e56;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.days-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 한 주를 7개 칸으로 나눔 */
-    gap: 5px;
+.util-calendar-actions .btn-today:hover {
+  background: #2a3142;
 }
 
-.days-grid div {
-    padding: 10px;
-    border: 1px solid #ddd;
-    text-align: center;
-    border-radius: 5px;
+.util-calendar-actions label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--cal-text);
 }
 
-.day-of-week {
-    text-align: center;
-    font-weight: bold;
-    padding: 5px;
-    border-bottom: 1px solid #ddd;
+.util-calendar-actions input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #373e56;
 }
 
-/* 공휴일 */
-.holiday {
-    color: red;
-    font-weight: bold;
+/* 요일 헤더 */
+.util-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
 }
 
-/* 공휴일 이름 */
-.holiday-name {
-    color: #666;
-    font-size: 0.75rem;
-    line-height: 1.2;
-    text-align: center;
-    position: absolute;
-    top: 35px;
-    left: 8px;
-    right: 8px;
-    word-break: keep-all;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+.util-calendar-weekdays div {
+  text-align: center;
+  padding: 0.6rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cal-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-/* 기념일 */
-.memorial-day {
-    color: blue;
-    font-weight: bold;
+.util-calendar-weekdays div.weekday-sun { color: var(--cal-sun); }
+.util-calendar-weekdays div.weekday-sat { color: var(--cal-sat); }
+
+/* 날짜 그리드 */
+.util-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
 }
 
-/* 주말 */
-.weekend {
-    color: red;
-    font-weight: bold;
+.calendar-day {
+  min-height: 88px;
+  padding: 6px 8px;
+  background: var(--cal-cell-bg);
+  border: var(--cal-border);
+  border-radius: 10px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-/* 주말에 마우스를 올렸을 때 스타일 */
-.weekend:hover {
-    pointer-events: none; /* 이 부분을 추가하여 주말에는 툴팁을 표시하지 않음 */
+.calendar-day:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
 }
 
-/* 달력 셀 스타일 */
-.calendar-cell {
-    min-height: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 8px 4px;
-    position: relative;
+.calendar-day .day-number {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cal-text);
+  margin-bottom: 2px;
+  flex-shrink: 0;
 }
 
-/* 날짜 숫자 기본 스타일 */
-.date-number {
-    margin-bottom: 4px;
+.calendar-day.sunday .day-number,
+.calendar-day.sunday:not(.holiday) .day-number { color: var(--cal-sun); }
+
+.calendar-day.saturday .day-number,
+.calendar-day.saturday:not(.holiday) .day-number { color: var(--cal-sat); }
+
+.calendar-day.holiday .day-number { color: var(--cal-holiday); }
+
+.calendar-day.today {
+  background: var(--cal-today-bg);
+  border-color: var(--cal-today-bg);
+  box-shadow: 0 2px 8px rgba(55, 62, 86, 0.25);
 }
 
-/* 공휴일 날짜 */
-.date-number.holiday {
-    color: #ef4343;
-    font-weight: bold;
+.calendar-day.today .day-number,
+.calendar-day.today .holiday-name,
+.calendar-day.today .lunar-date { color: var(--cal-today-text); }
+
+.calendar-day.today:hover {
+  background: #2a3142;
+  border-color: #2a3142;
 }
 
-/* 오늘 날짜 */
-.date-number.today {
-    color: white;
+.calendar-day .holiday-name {
+  font-size: 0.7rem;
+  line-height: 1.25;
+  color: var(--cal-holiday);
+  font-weight: 600;
+  word-break: keep-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-bottom: 2px;
 }
 
-/* 주말 날짜 (공휴일이 아닌 경우) */
-.date-number.weekend:not(.holiday) {
-    color: #ef4343;
+.calendar-day .holiday-name.commemoration-text { color: #1d4ed8; }
+
+.calendar-day .lunar-date {
+  font-size: 0.65rem;
+  color: var(--cal-muted);
+  margin-top: auto;
+  padding-top: 2px;
 }
 
-/* 음력 날짜 */
-.lunar-date {
-    color: #999;
-    font-size: 0.7rem;
-    font-weight: normal;
+.calendar-day.today .lunar-date { color: rgba(255,255,255,0.85); }
+
+/* 빈 셀 (이전/다음 달) */
+.calendar-day:empty,
+.calendar-day.calendar-day-empty {
+  background: #f9fafb;
+  border-color: #f3f4f6;
+  min-height: 88px;
 }
 
-/* 달력 셀 내부 정렬 */
-.calendar-cell {
-    padding: 8px;
-    position: relative;
-}
-
-/* 날짜 숫자 (왼쪽 위) */
-.date-number {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    font-size: 1.125rem;
-    font-weight: 600;
-}
-
-/* 음력 날짜 (오른쪽 위) */
-.lunar-date {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    color: #999;
-    font-size: 0.7rem;
-    font-weight: normal;
+.util-calendar-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2.5rem;
+  color: var(--cal-muted);
+  font-size: 0.9rem;
 }

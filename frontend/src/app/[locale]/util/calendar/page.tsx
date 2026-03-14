@@ -5,6 +5,7 @@ import Navbar from '../../../../components/Navbar';
 import Footer from '../../../../components/Footer';
 import '../../../../styles/util/calendar.css';
 import { API_CONFIG } from '../../../../lib/api-client/config';
+import calendar from 'solar2lunar';
 
 interface Holiday {
   name: string;
@@ -15,6 +16,8 @@ interface LunarDate {
   [key: number]: string;
 }
 
+const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [holidays, setHolidays] = useState<Record<number, Holiday>>({});
@@ -24,38 +27,41 @@ export default function CalendarPage() {
 
   const currentYear = currentDate.getFullYear();
   const currentMonthIndex = currentDate.getMonth();
+  const solarMonth = currentMonthIndex + 1;
 
   useEffect(() => {
-    fetchHolidaysAndLunar(currentYear, currentMonthIndex);
-  }, [currentYear, currentMonthIndex]);
+    fetchHolidays(currentYear, solarMonth);
+  }, [currentYear, solarMonth]);
 
-  const fetchHolidaysAndLunar = async (year: number, month: number) => {
+  // 해당 연·월의 음력은 클라이언트에서 계산 (solar2lunar)
+  useEffect(() => {
+    const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+    const next: LunarDate = {};
+    for (let day = 1; day <= daysInMonth; day++) {
+      const result = calendar.solar2lunar(currentYear, solarMonth, day);
+      if (result && typeof result.lMonth === 'number' && typeof result.lDay === 'number') {
+        next[day] = `음 ${result.lMonth}.${result.lDay}`;
+      }
+    }
+    setLunarDates(next);
+  }, [currentYear, currentMonthIndex, solarMonth]);
+
+  const fetchHolidays = async (year: number, month: number) => {
     setLoading(true);
-    const monthStr = String(month + 1).padStart(2, '0');
-    
-    // 공휴일 API 호출
     try {
-      const response = await fetch(`${API_CONFIG.apiPrefix}/holidays/?year=${year}&month=${monthStr}`);
+      const response = await fetch(`${API_CONFIG.apiPrefix}/holidays/?year=${year}&month=${month}`);
       const data = await response.json();
-      
+
       const newHolidays: Record<number, Holiday> = {};
-      if (data.response && data.response.body && data.response.body.items && data.response.body.items.item) {
-        const items = Array.isArray(data.response.body.items.item) 
-          ? data.response.body.items.item 
-          : [data.response.body.items.item];
-        
-        items.forEach((item: any) => {
-          const day = parseInt(item.locdate.toString().slice(-2));
-          if (item.isHoliday === 'Y') {
-            newHolidays[day] = {
-              name: item.dateName,
-              isHoliday: true
-            };
-          } else if (item.isHoliday === 'N') {
-            newHolidays[day] = {
-              name: item.dateName,
-              isHoliday: false
-            };
+      const list = data?.holidays;
+      if (Array.isArray(list)) {
+        list.forEach((item: { date: string; name: string }) => {
+          const dateStr = String(item.date);
+          if (dateStr.length >= 8) {
+            const day = parseInt(dateStr.slice(-2), 10);
+            if (day >= 1 && day <= 31) {
+              newHolidays[day] = { name: item.name, isHoliday: true };
+            }
           }
         });
       }
@@ -64,31 +70,6 @@ export default function CalendarPage() {
       console.error('공휴일 정보를 가져오는데 실패했습니다:', error);
       setHolidays({});
     }
-    
-    // 음력 API 호출
-    try {
-      const lunarResponse = await fetch(`${API_CONFIG.apiPrefix}/lunar/?year=${year}&month=${monthStr}`);
-      const lunarData = await lunarResponse.json();
-      
-      const newLunarDates: LunarDate = {};
-      if (lunarData.response && lunarData.response.body && lunarData.response.body.items && lunarData.response.body.items.item) {
-        const lunarItems = Array.isArray(lunarData.response.body.items.item) 
-          ? lunarData.response.body.items.item 
-          : [lunarData.response.body.items.item];
-        
-        lunarItems.forEach((item: any) => {
-          const day = parseInt(item.solDay);
-          if (item.lunMonth && item.lunDay) {
-            newLunarDates[day] = `음 ${item.lunMonth}.${item.lunDay}`;
-          }
-        });
-      }
-      setLunarDates(newLunarDates);
-    } catch (error) {
-      console.error('음력 정보를 가져오는데 실패했습니다:', error);
-      setLunarDates({});
-    }
-    
     setLoading(false);
   };
 
@@ -110,15 +91,11 @@ export default function CalendarPage() {
     const today = new Date();
     const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === currentMonthIndex;
 
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                        'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthName = monthNames[currentMonthIndex];
-
     const days = [];
-    
+
     // 빈 칸 추가 (첫 번째 날짜 전)
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="calendar-day"></div>);
+      days.push(<div key={`empty-${i}`} className="calendar-day calendar-day-empty"></div>);
     }
     
     // 날짜 추가
@@ -153,75 +130,48 @@ export default function CalendarPage() {
   return (
     <>
       <Navbar />
-      <section className="py-12">
+      <section className="py-12 util-calendar-wrap">
         <div className="max-w-4xl mx-auto px-4">
-          <h1 className="text-3xl font-bold text-center mb-8">달력</h1>
-          
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex flex-col items-center mb-6">
-              {/* 상단 버튼들 */}
-              <div className="flex items-center gap-3 mb-4">
-                <button 
-                  onClick={goToToday}
-                  className="bg-[#373e56] hover:bg-[#2a3142] text-white px-4 py-2 rounded-lg text-sm font-medium"
-                >
+          <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">달력</h1>
+
+          <div className="util-calendar-card">
+            <div className="util-calendar-header">
+              <div className="util-calendar-actions">
+                <button type="button" onClick={goToToday} className="btn-today">
                   오늘
                 </button>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
+                <label>
+                  <input
+                    type="checkbox"
                     checked={showLunar}
                     onChange={(e) => setShowLunar(e.target.checked)}
-                    className="w-4 h-4 text-[#373e56] bg-gray-100 border-gray-300 rounded focus:ring-[#373e56] focus:ring-2"
                   />
-                  <span className="text-sm text-gray-700">음력</span>
+                  <span>음력 표시</span>
                 </label>
               </div>
-              
-              {/* 월 네비게이션 */}
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={prevMonth}
-                  className="text-2xl hover:text-[#373e56]"
-                >
-                  ‹
-                </button>
-                <div className="flex items-center">
-                  <div className="bg-[#373e56] text-white px-4 py-2 rounded-lg mr-3 text-lg font-bold">
-                    {String(currentMonthIndex + 1).padStart(2, '0')}
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-800">{currentYear}</div>
-                    <div className="text-lg text-gray-600">
-                      {['January', 'February', 'March', 'April', 'May', 'June', 
-                        'July', 'August', 'September', 'October', 'November', 'December'][currentMonthIndex]}
-                    </div>
-                  </div>
+              <div className="util-calendar-nav">
+                <button type="button" onClick={prevMonth} aria-label="이전 달">‹</button>
+                <div className="util-calendar-title">
+                  <span className="year">{currentYear}년</span>
+                  {MONTH_NAMES[currentMonthIndex]}
                 </div>
-                <button 
-                  onClick={nextMonth}
-                  className="text-2xl hover:text-[#373e56]"
-                >
-                  ›
-                </button>
+                <button type="button" onClick={nextMonth} aria-label="다음 달">›</button>
               </div>
             </div>
-            
-            {/* 요일 헤더 */}
-            <div className="grid grid-cols-7 gap-0 mb-4">
-              <div className="text-center font-semibold py-2 bg-white text-[#ef4343]">일 SUN</div>
-              <div className="text-center font-semibold py-2 bg-white text-[#373e56]">월 MON</div>
-              <div className="text-center font-semibold py-2 bg-white text-[#373e56]">화 TUE</div>
-              <div className="text-center font-semibold py-2 bg-white text-[#373e56]">수 WED</div>
-              <div className="text-center font-semibold py-2 bg-white text-[#373e56]">목 THU</div>
-              <div className="text-center font-semibold py-2 bg-white text-[#373e56]">금 FRI</div>
-              <div className="text-center font-semibold py-2 bg-white text-[#ef4343]">토 SAT</div>
+
+            <div className="util-calendar-weekdays">
+              <div className="weekday-sun">일</div>
+              <div>월</div>
+              <div>화</div>
+              <div>수</div>
+              <div>목</div>
+              <div>금</div>
+              <div className="weekday-sat">토</div>
             </div>
-            
-            {/* 달력 날짜들 */}
-            <div className="grid grid-cols-7 gap-0">
+
+            <div className="util-calendar-grid">
               {loading ? (
-                <div className="col-span-7 text-center py-8">로딩 중...</div>
+                <div className="util-calendar-loading">로딩 중...</div>
               ) : (
                 renderCalendar()
               )}

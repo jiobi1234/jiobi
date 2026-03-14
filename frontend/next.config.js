@@ -20,6 +20,12 @@ const nextConfig = {
           moduleIds: 'named',
         };
       }
+      // Windows에서 캐시 파일 잠금(UNKNOWN -4094)·pagefile.sys EINVAL 완화: 폴링 사용
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: ['**/pagefile.sys', '**/node_modules/**'],
+        poll: 1000,
+      };
       return config;
     },
   } : {}),

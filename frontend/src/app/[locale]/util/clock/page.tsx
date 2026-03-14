@@ -270,7 +270,27 @@ export default function ClockPage() {
         setMainAlarmMinute(prev => prev <= 0 ? 59 : prev - 1);
       }
     };
-    
+
+    // 키보드(화살표): 휠과 완전히 동일 동작. 휠 deltaY<0=올리기=증가=ArrowUp, deltaY>0=내리기=감소=ArrowDown
+    const makeAlarmKeyHandler = (kind: 'ampm' | 'hour' | 'minute') => (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      e.stopPropagation();
+      const isUp = e.key === 'ArrowUp';
+      if (kind === 'ampm') {
+        setMainAlarmAMPM(prev => prev === 'AM' ? 'PM' : 'AM');
+      } else if (kind === 'hour') {
+        if (isUp) setMainAlarmHour(prev => prev >= 12 ? 1 : prev + 1);
+        else setMainAlarmHour(prev => prev <= 1 ? 12 : prev - 1);
+      } else {
+        if (isUp) setMainAlarmMinute(prev => prev >= 59 ? 0 : prev + 1);
+        else setMainAlarmMinute(prev => prev <= 0 ? 59 : prev - 1);
+      }
+    };
+    const handleAlarmAmpmKey = makeAlarmKeyHandler('ampm');
+    const handleAlarmHourKey = makeAlarmKeyHandler('hour');
+    const handleAlarmMinuteKey = makeAlarmKeyHandler('minute');
+
     // 드래그 이벤트
     let isDragging = false;
     let startY = 0;
@@ -392,20 +412,26 @@ export default function ClockPage() {
     ampmSelector.addEventListener('wheel', handleAMPMWheel);
     hourSelector.addEventListener('wheel', handleHourWheel);
     minuteSelector.addEventListener('wheel', handleMinuteWheel);
+    ampmSelector.addEventListener('keydown', handleAlarmAmpmKey);
+    hourSelector.addEventListener('keydown', handleAlarmHourKey);
+    minuteSelector.addEventListener('keydown', handleAlarmMinuteKey);
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('click', handleTimeOptionClick);
-    
+
     // 커서 스타일 설정
     (ampmSelector as HTMLElement).style.cursor = 'grab';
     (hourSelector as HTMLElement).style.cursor = 'grab';
     (minuteSelector as HTMLElement).style.cursor = 'grab';
-    
+
     return () => {
       ampmSelector.removeEventListener('wheel', handleAMPMWheel);
       hourSelector.removeEventListener('wheel', handleHourWheel);
       minuteSelector.removeEventListener('wheel', handleMinuteWheel);
+      ampmSelector.removeEventListener('keydown', handleAlarmAmpmKey);
+      hourSelector.removeEventListener('keydown', handleAlarmHourKey);
+      minuteSelector.removeEventListener('keydown', handleAlarmMinuteKey);
       document.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -459,7 +485,28 @@ export default function ClockPage() {
         setMainTimerSecond(prev => prev <= 0 ? 59 : prev - 1);
       }
     };
-    
+
+    // 키보드(화살표): 휠과 완전히 동일. 휠 올리기=ArrowUp=증가, 휠 내리기=ArrowDown=감소
+    const makeTimerKeyHandler = (kind: 'hour' | 'minute' | 'second') => (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      e.stopPropagation();
+      const isUp = e.key === 'ArrowUp';
+      if (kind === 'hour') {
+        if (isUp) setMainTimerHour(prev => prev >= 99 ? 0 : prev + 1);
+        else setMainTimerHour(prev => prev <= 0 ? 99 : prev - 1);
+      } else if (kind === 'minute') {
+        if (isUp) setMainTimerMinute(prev => prev >= 59 ? 0 : prev + 1);
+        else setMainTimerMinute(prev => prev <= 0 ? 59 : prev - 1);
+      } else {
+        if (isUp) setMainTimerSecond(prev => prev >= 59 ? 0 : prev + 1);
+        else setMainTimerSecond(prev => prev <= 0 ? 59 : prev - 1);
+      }
+    };
+    const handleTimerHourKey = makeTimerKeyHandler('hour');
+    const handleTimerMinuteKey = makeTimerKeyHandler('minute');
+    const handleTimerSecondKey = makeTimerKeyHandler('second');
+
     // 드래그 이벤트
     let isDragging = false;
     let startY = 0;
@@ -594,20 +641,26 @@ export default function ClockPage() {
       hourSelector.addEventListener('wheel', handleHourWheel);
       minuteSelector.addEventListener('wheel', handleMinuteWheel);
       secondSelector.addEventListener('wheel', handleSecondWheel);
+      hourSelector.addEventListener('keydown', handleTimerHourKey);
+      minuteSelector.addEventListener('keydown', handleTimerMinuteKey);
+      secondSelector.addEventListener('keydown', handleTimerSecondKey);
       document.addEventListener('mousedown', handleMouseDown);
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('click', handleTimeOptionClick);
-      
+
       // 커서 스타일 설정
       hourSelector.style.cursor = 'grab';
       minuteSelector.style.cursor = 'grab';
       secondSelector.style.cursor = 'grab';
-      
+
       return () => {
         hourSelector.removeEventListener('wheel', handleHourWheel);
         minuteSelector.removeEventListener('wheel', handleMinuteWheel);
         secondSelector.removeEventListener('wheel', handleSecondWheel);
+        hourSelector.removeEventListener('keydown', handleTimerHourKey);
+        minuteSelector.removeEventListener('keydown', handleTimerMinuteKey);
+        secondSelector.removeEventListener('keydown', handleTimerSecondKey);
         document.removeEventListener('mousedown', handleMouseDown);
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
@@ -659,13 +712,15 @@ export default function ClockPage() {
   useEffect(() => {
     // 알람 체크
     const checkAlarms = setInterval(() => {
+      const now = new Date();
       setAlarms(prev => prev.map(alarm => {
-        if (alarm.state === 'running' && new Date() >= alarm.targetTime) {
-          // 알람 시간 도달
-          const audio = new Audio('/audio/games/alarm.mp3');
-          audio.loop = true;
-          audio.play().catch(() => {});
-          
+        if (alarm.state === 'running' && now >= alarm.targetTime) {
+          // 알람 시간 도달: ref로 재생(제거 시 멈출 수 있음) + 팝업 표시
+          if (alarmSoundRef.current) {
+            alarmSoundRef.current.loop = true;
+            alarmSoundRef.current.play().catch(() => {});
+          }
+          setAlarmModals(prevModals => new Map(prevModals).set(alarm.id, true));
           return { ...alarm, state: 'stopped' };
         }
         return alarm;
@@ -1484,7 +1539,14 @@ export default function ClockPage() {
               <div className="time-picker-container bg-white rounded-lg p-4 w-full border mb-4">
                 <div className="time-picker flex items-center justify-center space-x-8">
                   {/* AM/PM 선택 */}
-                  <div className="ampm-selector flex flex-col items-center justify-center">
+                  <div
+                    className="ampm-selector flex flex-col items-center justify-center"
+                    tabIndex={0}
+                    role="spinbutton"
+                    aria-valuetext={mainAlarmAMPM}
+                    aria-label="AM/PM"
+                    onMouseDown={(e) => (e.currentTarget as HTMLElement).focus()}
+                  >
                     <div 
                       className={`time-option text-xl cursor-pointer ${
                         mainAlarmAMPM === 'PM' ? 'text-gray-300' : 'text-[#373e56] text-3xl font-bold'
@@ -1504,7 +1566,16 @@ export default function ClockPage() {
                   </div>
                   
                   {/* 시간 선택 */}
-                  <div className="hour-selector flex flex-col items-center justify-center">
+                  <div
+                    className="hour-selector flex flex-col items-center justify-center"
+                    tabIndex={0}
+                    role="spinbutton"
+                    aria-valuenow={mainAlarmHour}
+                    aria-valuemin={1}
+                    aria-valuemax={12}
+                    aria-label="시간"
+                    onMouseDown={(e) => (e.currentTarget as HTMLElement).focus()}
+                  >
                     <div 
                       className="time-option text-gray-300 text-xl cursor-pointer"
                       data-value={mainAlarmHour <= 1 ? 12 : mainAlarmHour - 1}
@@ -1528,7 +1599,16 @@ export default function ClockPage() {
                   <div className="text-[#373e56] text-3xl font-bold">:</div>
                   
                   {/* 분 선택 */}
-                  <div className="minute-selector flex flex-col items-center justify-center">
+                  <div
+                    className="minute-selector flex flex-col items-center justify-center"
+                    tabIndex={0}
+                    role="spinbutton"
+                    aria-valuenow={mainAlarmMinute}
+                    aria-valuemin={0}
+                    aria-valuemax={59}
+                    aria-label="분"
+                    onMouseDown={(e) => (e.currentTarget as HTMLElement).focus()}
+                  >
                     <div 
                       className="time-option text-gray-300 text-xl cursor-pointer"
                       data-value={mainAlarmMinute <= 0 ? 59 : mainAlarmMinute - 1}
@@ -1715,7 +1795,16 @@ export default function ClockPage() {
                 <div className="time-picker flex items-center justify-center space-x-8">
                   {/* 시간 선택 */}
                   <div id="mainTimerSetup">
-                    <div className="hour-selector flex flex-col items-center">
+                    <div
+                      className="hour-selector flex flex-col items-center"
+                      tabIndex={0}
+                      role="spinbutton"
+                      aria-valuenow={mainTimerHour}
+                      aria-valuemin={0}
+                      aria-valuemax={99}
+                      aria-label="시간"
+                      onMouseDown={(e) => (e.currentTarget as HTMLElement).focus()}
+                    >
                       <div 
                         className="time-option text-gray-300 text-xl cursor-pointer"
                         data-value={mainTimerHour === 0 ? 99 : mainTimerHour - 1}
@@ -1740,7 +1829,16 @@ export default function ClockPage() {
                   <div className="text-[#373e56] text-3xl font-bold">:</div>
                   
                   {/* 분 선택 */}
-                  <div className="minute-selector flex flex-col items-center">
+                  <div
+                    className="minute-selector flex flex-col items-center"
+                    tabIndex={0}
+                    role="spinbutton"
+                    aria-valuenow={mainTimerMinute}
+                    aria-valuemin={0}
+                    aria-valuemax={59}
+                    aria-label="분"
+                    onMouseDown={(e) => (e.currentTarget as HTMLElement).focus()}
+                  >
                     <div 
                       className="time-option text-gray-300 text-xl cursor-pointer"
                       data-value={mainTimerMinute <= 0 ? 59 : mainTimerMinute - 1}
@@ -1764,7 +1862,16 @@ export default function ClockPage() {
                   <div className="text-[#373e56] text-3xl font-bold">:</div>
                   
                   {/* 초 선택 */}
-                  <div className="second-selector flex flex-col items-center">
+                  <div
+                    className="second-selector flex flex-col items-center"
+                    tabIndex={0}
+                    role="spinbutton"
+                    aria-valuenow={mainTimerSecond}
+                    aria-valuemin={0}
+                    aria-valuemax={59}
+                    aria-label="초"
+                    onMouseDown={(e) => (e.currentTarget as HTMLElement).focus()}
+                  >
                     <div 
                       className="time-option text-gray-300 text-xl cursor-pointer"
                       data-value={mainTimerSecond <= 0 ? 59 : mainTimerSecond - 1}

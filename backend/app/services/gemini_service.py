@@ -1,41 +1,35 @@
-import google.generativeai as genai
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", category=FutureWarning)
+    import google.generativeai as genai
 from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class GeminiService:
     def __init__(self):
         print(f"DEBUG: Initializing GeminiService. Key present: {bool(settings.GEMINI_API_KEY)}")
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.model = genai.GenerativeModel("gemini-2.5-flash")
         else:
             logger.warning("GEMINI_API_KEY is not set. Gemini features will be disabled.")
             self.model = None
 
     async def generate_text(self, prompt: str) -> str:
         """
-        Generates text using the Gemini Pro model.
-        
-        Args:
-            prompt: The input text prompt.
-            
-        Returns:
-            The generated text response.
-            
-        Raises:
-            Exception: If the API key is missing or an error occurs during generation.
+        Generates text using the Gemini model.
         """
         if not self.model:
             raise Exception("Gemini API is not configured.")
 
         try:
             response = await self.model.generate_content_async(prompt)
-            return response.text
+            return response.text or ""
         except Exception as e:
             logger.error(f"Gemini generation error: {str(e)}")
-            raise Exception(f"Failed to generate content: {str(e)}")
             raise Exception(f"Failed to generate content: {str(e)}")
 
     async def select_places(self, region: str, duration: str, themes: list[str], companions: str) -> str:
@@ -77,21 +71,21 @@ class GeminiService:
         """
 
         try:
-            # response = await self.model.generate_content_async(prompt, generation_config={"response_mime_type": "application/json"})
+            # Optional: use config for response_mime_type="application/json" if supported
             # Note: response_mime_type might require specific model version support. 
             # Safe fallback: prompt engineering + text cleaning.
             
             response = await self.model.generate_content_async(prompt)
-            text = response.text
-            
+            text = response.text or ""
+
             # Clean up potential markdown formatting (```json ... ```)
             if "```json" in text:
                 text = text.replace("```json", "").replace("```", "")
             elif "```" in text:
-                 text = text.replace("```", "")
-                 
+                text = text.replace("```", "")
+
             return text.strip()
-            
+
         except Exception as e:
             logger.error(f"Gemini place selection error: {str(e)}")
             raise Exception(f"Failed to select places: {str(e)}")
@@ -206,15 +200,15 @@ class GeminiService:
 
         try:
             response = await self.model.generate_content_async(prompt)
-            text = response.text
-            
+            text = response.text or ""
+
             if "```json" in text:
                 text = text.replace("```json", "").replace("```", "")
             elif "```" in text:
-                 text = text.replace("```", "")
-                 
+                text = text.replace("```", "")
+
             return text.strip()
-            
+
         except Exception as e:
             logger.error(f"Gemini route optimization error: {str(e)}")
             raise Exception(f"Failed to optimize route: {str(e)}")
