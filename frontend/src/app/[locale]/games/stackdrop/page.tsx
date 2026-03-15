@@ -29,7 +29,7 @@ export default function StackDropPage() {
   const blockHeight = 30;
 
   return (
-    <>
+    <div className="stackdrop-page">
       <Navbar />
       <div id="game-info">
         <div id="time-left" style={{ color: timeLeft <= 10 ? 'red' : '', fontWeight: timeLeft <= 10 ? 'bold' : 'normal' }}>
@@ -40,7 +40,7 @@ export default function StackDropPage() {
       </div>
 
       <div id="game-container">
-        <div id="game-area" ref={gameAreaRef} style={{ position: 'relative', width: '100%', height: '400px' }}>
+        <div id="game-area" ref={gameAreaRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
           <div id="stacked-rectangles" style={{ position: 'relative', width: '100%', height: '100%' }}>
             {stackedBlocks.map(block => (
               <div
@@ -97,7 +97,7 @@ export default function StackDropPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

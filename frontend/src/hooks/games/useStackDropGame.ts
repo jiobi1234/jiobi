@@ -43,11 +43,39 @@ export function useStackDropGame(onExit: () => void): UseStackDropGameReturn {
   const timerIdRef = useRef<NodeJS.Timeout | null>(null);
   const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
   const blockIdCounterRef = useRef(0);
+  const fallingBlockRef = useRef<Block | null>(null);
+  const movingRightRef = useRef(true);
+  const scoreRef = useRef(0);
+  const highScoreRef = useRef(0);
+  const gameStartTimeRef = useRef(0);
 
   const blockWidth = 80;
   const blockHeight = 30;
-  const moveSpeed = 5;
+  const baseMoveSpeed = 5;
   const maxStackedBlocks = 3;
+
+  /** 경과 시간(초)에 따라 이동 속도 증가 (5초마다 +2px/tick, 최대 15) */
+  const getCurrentMoveSpeed = useCallback(() => {
+    const elapsedSec = (Date.now() - gameStartTimeRef.current) / 1000;
+    const bonus = Math.min(10, Math.floor(elapsedSec / 5) * 2);
+    return baseMoveSpeed + bonus;
+  }, []);
+
+  useEffect(() => {
+    fallingBlockRef.current = fallingBlock;
+  }, [fallingBlock]);
+
+  useEffect(() => {
+    movingRightRef.current = movingRight;
+  }, [movingRight]);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  useEffect(() => {
+    highScoreRef.current = highScore;
+  }, [highScore]);
 
   const initBGM = useCallback(() => {
     bgmAudioRef.current = new Audio('/audio/games/stackdrop_BGM.mp3');
@@ -79,33 +107,35 @@ export function useStackDropGame(onExit: () => void): UseStackDropGameReturn {
   }, []);
 
   const moveRectangle = useCallback(() => {
-    if (!fallingBlock || !gameAreaRef.current) return;
-    
+    const current = fallingBlockRef.current;
+    if (!current || !gameAreaRef.current) return;
+
+    const speed = getCurrentMoveSpeed();
     const gameAreaWidth = gameAreaRef.current.offsetWidth;
     const maxLeft = 0;
     const maxRight = gameAreaWidth - blockWidth;
-    
-    setFallingBlock(prev => {
-      if (!prev) return null;
-      
-      let newLeft = prev.left;
-      if (movingRight) {
-        if (newLeft < maxRight) {
-          newLeft += moveSpeed;
-        } else {
-          setMovingRight(false);
-        }
+
+    let newLeft = current.left;
+    const goingRight = movingRightRef.current;
+
+    if (goingRight) {
+      if (newLeft < maxRight) {
+        newLeft += speed;
       } else {
-        if (newLeft > maxLeft) {
-          newLeft -= moveSpeed;
-        } else {
-          setMovingRight(true);
-        }
+        movingRightRef.current = false;
+        setMovingRight(false);
       }
-      
-      return { ...prev, left: newLeft };
-    });
-  }, [fallingBlock, movingRight]);
+    } else {
+      if (newLeft > maxLeft) {
+        newLeft -= speed;
+      } else {
+        movingRightRef.current = true;
+        setMovingRight(true);
+      }
+    }
+
+    setFallingBlock(prev => (prev ? { ...prev, left: newLeft } : null));
+  }, [getCurrentMoveSpeed]);
 
   const calculateScore = useCallback((currentLeft: number, lastBlockLeft: number) => {
     const difference = Math.abs(currentLeft - lastBlockLeft);
@@ -136,15 +166,16 @@ export function useStackDropGame(onExit: () => void): UseStackDropGameReturn {
     if (intervalIdRef.current) clearInterval(intervalIdRef.current);
     if (timerIdRef.current) clearInterval(timerIdRef.current);
     stopBGM();
+    fallingBlockRef.current = null;
     setFallingBlock(null);
     setShowMessageBox(true);
-    
-    if (score > highScore) {
-      const newHighScore = score;
-      setHighScore(newHighScore);
-      localStorage.setItem('stackdropHighScore', newHighScore.toString());
+
+    const finalScore = scoreRef.current;
+    if (finalScore > highScoreRef.current) {
+      setHighScore(finalScore);
+      localStorage.setItem('stackdropHighScore', finalScore.toString());
     }
-  }, [stopBGM, score, highScore]);
+  }, [stopBGM]);
 
   const dropRectangle = useCallback(() => {
     if (!fallingBlock || !gameAreaRef.current) return;
@@ -183,7 +214,7 @@ export function useStackDropGame(onExit: () => void): UseStackDropGameReturn {
     }
 
     setStackedBlocks(newStackedBlocks);
-    
+
     // 새 블록 생성
     const gameAreaWidth = gameAreaRef.current.offsetWidth;
     const newFallingBlock: Block = {
@@ -192,22 +223,26 @@ export function useStackDropGame(onExit: () => void): UseStackDropGameReturn {
       top: 0,
       isFalling: true
     };
+    fallingBlockRef.current = newFallingBlock;
     setFallingBlock(newFallingBlock);
   }, [fallingBlock, stackedBlocks, checkFailCondition, calculateScore]);
 
   const startGame = useCallback(() => {
     if (!gameAreaRef.current) return;
-    
+
     const gameAreaWidth = gameAreaRef.current.offsetWidth;
     const initialLeft = gameAreaWidth / 2 - blockWidth / 2;
-    
+
     const newFallingBlock: Block = {
       id: blockIdCounterRef.current++,
       left: initialLeft,
       top: 0,
       isFalling: true
     };
-    
+
+    fallingBlockRef.current = newFallingBlock;
+    movingRightRef.current = true;
+    gameStartTimeRef.current = Date.now();
     setFallingBlock(newFallingBlock);
     setStackedBlocks([]);
     setScore(0);

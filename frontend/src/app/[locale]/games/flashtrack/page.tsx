@@ -25,7 +25,7 @@ export default function FlashTrackPage() {
   });
 
   return (
-    <>
+    <div className="flashtrack-page">
       <Navbar />
       <div id="game-container" className="game-wrapper">
         <div id="game-wrapper" className="game-group">
@@ -65,7 +65,7 @@ export default function FlashTrackPage() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

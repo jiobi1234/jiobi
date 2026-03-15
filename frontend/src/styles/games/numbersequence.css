@@ -1,108 +1,192 @@
-/* body 스타일은 base.html에서 관리 */
+/* 숫자 순서 게임 - 번호판 + 모바일 최적화 */
 
-.container {
-    width: 100%;
-    max-width: 500px; /* 최대 너비를 줄임 (600px → 500px) */
-    margin: 0 auto;
-    text-align: center;
-    padding: 40px 20px;
+.ns-container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1rem 1rem 1.5rem;
+  box-sizing: border-box;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
+.ns-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #475569;
 }
 
-.score, .timer, .high-score {
-    font-size: 1.3rem; /* 글씨 크기를 줄임 (1.5rem → 1.3rem) */
-    flex-basis: 100%;
-    text-align: center;
-    margin-bottom: 10px;
+.ns-header > * {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+  font-weight: 500;
 }
 
-.game-instruction {
-    font-size: 2.5vw; /* 글씨 크기를 줄임 (4vw → 2.5vw) */
-    color: #333;
-    text-align: center;
-    margin-bottom: 30px;
+.ns-header span {
+  color: #0f172a;
+  font-weight: 700;
 }
 
-.game-board {
-    display: grid;
-    grid-gap: 8px; /* 간격을 줄임 (10px → 8px) */
-    margin-bottom: 20px;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 최소 너비 줄임 (100px → 80px) */
+.ns-instruction {
+  font-size: clamp(0.8125rem, 2.5vw, 0.9375rem);
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  line-height: 1.4;
+}
+
+/* 번호판을 감싸는 정사각형 영역 (가운데 정렬) */
+.ns-board-wrap {
+  width: 100%;
+  max-width: min(360px, 90vw);
+  margin: 0 auto 1.25rem;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+}
+
+.ns-board {
+  display: grid;
+  gap: clamp(6px, 1.5vw, 10px);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.ns-board .grid-item {
+  /* grid cell - sized by grid */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  font-size: clamp(1rem, 4.5vw, 1.5rem);
+  font-weight: 700;
+  color: #1e293b;
+  background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  min-height: 0;
+}
+
+.ns-board .grid-item:hover:not(:disabled) {
+  background: linear-gradient(145deg, #e2e8f0, #cbd5e1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.ns-board .grid-item:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: 0 0 0 2px #94a3b8;
+}
+
+/* 눌린 칸 표시 */
+.ns-board .grid-item.pressed {
+  background: linear-gradient(145deg, #fef3c7, #fde68a);
+  color: #b45309;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.06), 0 0 0 2px #f59e0b;
+  cursor: default;
+}
+
+.ns-board .grid-item:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+
+/* 게임 종료 */
+.ns-game-over {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.ns-game-over-message {
+  font-size: clamp(0.875rem, 2.2vw, 1rem);
+  color: #dc2626;
+  text-align: center;
+  line-height: 1.4;
+  max-width: 100%;
+  word-break: keep-all;
+}
+
+.ns-game-over-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ns-game-over-btn {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s, background-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.ns-game-over-btn:active {
+  transform: scale(0.98);
+}
+
+.ns-game-over-btn-primary {
+  background: #2563eb;
+  color: #fff !important;
+}
+
+.ns-game-over-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.ns-game-over-btn-secondary {
+  background: #e2e8f0;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.ns-game-over-btn-secondary:hover {
+  background: #cbd5e1;
+}
+
+/* 모바일: 여백·터치 영역 */
+@media (max-width: 480px) {
+  .ns-container {
+    padding: 0.75rem;
     max-width: 100%;
-}
+  }
 
-.grid-item {
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    font-size: 4vw; /* 숫자 크기를 줄임 (5vw → 4vw) */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    color: black;
-    height: 80px; /* 칸 높이를 줄임 (100px → 80px) */
-    box-sizing: border-box;
-}
+  .ns-header {
+    font-size: 0.8125rem;
+  }
 
-.grid-item.correct {
-    color: #DAA520;  /* 따뜻하고 눈에 띄는 금색 계열 변경 */
-    font-weight: bold;  /* 글자를 굵게 설정 */
-}
+  .ns-board-wrap {
+    max-width: min(320px, 90vw);
+  }
 
-.grid-item.wrong {
-    color: red;
-}
+  .ns-board {
+    gap: 6px;
+  }
 
-.game-over-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-}
-
-.game-over-message {
-    font-size: 4vw; /* 메시지 크기를 화면 크기에 맞춰 조정 */
-    color: red;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.button-container {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-}
-
-.large-button {
-    font-size: 4vw; /* 버튼의 텍스트 크기를 화면 크기에 맞춰 조정 */
-    padding: 10px 20px;
-}
-
-/* 모바일 및 태블릿 크기에 맞춰 스타일 조정 */
-@media (max-width: 768px) {
-    .container {
-        padding: 10px;
-    }
-
-    .grid-item {
-        font-size: 6vw; /* 모바일 화면에서 숫자 크기를 더 크게 조정 */
-        height: 70px;
-    }
-
-    .large-button {
-        font-size: 4.5vw; /* 모바일 화면에서 버튼 크기 조정 */
-        padding: 8px 16px;
-    }
-
-    .game-over-message {
-        font-size: 4.5vw; /* 모바일 화면에서 메시지 크기 조정 */
-    }
+  .ns-board .grid-item {
+    font-size: clamp(0.875rem, 5vw, 1.25rem);
+  }
 }

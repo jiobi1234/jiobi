@@ -18,7 +18,7 @@ export default function ReactionTimePage() {
     countdown,
     isGameStarted,
     canvasRef,
-    handleCanvasClick,
+    handleCanvasPointerDown,
     handleTouchStart,
     handleRestart,
     handleExit,
@@ -27,17 +27,29 @@ export default function ReactionTimePage() {
   });
 
   return (
-    <>
+    <div
+      className="reactiontime-page"
+      style={{
+        height: '100vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#1a1a2e',
+      }}
+    >
       <Navbar />
-      <div id="scoreboard" style={{
-        position: 'absolute',
-        top: '80px',
-        width: '100%',
-        textAlign: 'center',
-        fontSize: '24px',
-        color: 'white',
-        zIndex: 100
-      }}>
+      <div
+        id="scoreboard"
+        style={{
+          flexShrink: 0,
+          padding: '8px',
+          width: '100%',
+          textAlign: 'center',
+          fontSize: 'clamp(14px, 2.5vw, 24px)',
+          color: 'white',
+          zIndex: 100,
+        }}
+      >
         <div id="stage" style={{ display: 'inline-block', marginRight: '20px' }}>단계: {stage}</div>
         <div id="score" style={{ display: 'inline-block', marginRight: '20px' }}>게임점수: {score}</div>
         <div id="current-score" style={{ display: 'inline-block', marginRight: '20px' }}>단계 점수: {currentStageScore}</div>
@@ -45,17 +57,20 @@ export default function ReactionTimePage() {
           {countdown > 0 ? `${countdown}초 후 게임 시작!` : `남은 시간: ${timeLeft}초`}
         </div>
       </div>
-      <canvas 
-        ref={canvasRef}
-        id="gameCanvas"
-        onClick={handleCanvasClick}
-        onTouchStart={handleTouchStart}
-        style={{
-          display: 'block',
-          margin: '0 auto',
-          background: 'transparent'
-        }}
-      />
+      <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative' }}>
+        <canvas
+          ref={canvasRef}
+          id="gameCanvas"
+          onMouseDown={handleCanvasPointerDown}
+          onTouchStart={handleTouchStart}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            background: 'transparent',
+          }}
+        />
+      </div>
       
       {showGameOver && (
         <div id="game-over-message" style={{
@@ -114,7 +129,7 @@ export default function ReactionTimePage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

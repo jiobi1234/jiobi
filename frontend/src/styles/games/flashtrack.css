@@ -1,21 +1,19 @@
-/* 전체 레이아웃 */
-body,
-h1,
-p,
-button {
+/* Flashtrack 전용: 다른 페이지로 스타일이 새지 않도록 .flashtrack-page 안에서만 적용 */
+.flashtrack-page,
+.flashtrack-page h1,
+.flashtrack-page p,
+.flashtrack-page button {
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
 }
 
-body {
+.flashtrack-page {
   background-color: #f4f4f4;
-  margin: 0;
-  padding: 0;
   min-height: 100vh;
 }
 
-.game-wrapper {
+.flashtrack-page .game-wrapper {
   text-align: center;
   width: 100%;
   max-width: 800px;
@@ -23,26 +21,26 @@ body {
   padding: 20px;
 }
 
-.game-title {
+.flashtrack-page .game-title {
   font-size: 2em;
   margin-bottom: 20px;
 }
 
 /* 점수판 스타일 */
-.score-display {
+.flashtrack-page .score-display {
   margin-bottom: 20px; /* 게임 화면과 20px 간격 */
   font-size: 1.5em;
 }
 
 /* 원형 배치 */
-.grid {
+.flashtrack-page .grid {
   position: relative;
   width: 600px;
   height: 600px;
   margin: 0 auto;
 }
 
-.quarter-button {
+.flashtrack-page .quarter-button {
   position: absolute;
   border-radius: 100% 0 0 0;  /* 도넛 모양을 유지 */
   cursor: pointer;
@@ -54,88 +52,88 @@ body {
   filter: brightness(1) saturate(1); /* 기본 필터 설정 */
 }
 
-.quarter-button:hover {
+.flashtrack-page .quarter-button:hover {
   opacity: 0.8;
   transition: opacity 0.2s ease;
 }
 
-.quarter-button:active {
+.flashtrack-page .quarter-button:active {
   transform: scale(0.95);
   transition: transform 0.1s ease;
 }
 
 /* 클릭 효과 클래스 - 각 버튼별로 개별 적용 */
-#inner-btn-1.button-clicked {
+.flashtrack-page #inner-btn-1.button-clicked {
   transform: rotate(0deg) scale(0.95) !important;
 }
 
-#inner-btn-2.button-clicked {
+.flashtrack-page #inner-btn-2.button-clicked {
   transform: rotate(90deg) scale(0.95) !important;
 }
 
-#inner-btn-3.button-clicked {
+.flashtrack-page #inner-btn-3.button-clicked {
   transform: rotate(270deg) scale(0.95) !important;
 }
 
-#inner-btn-4.button-clicked {
+.flashtrack-page #inner-btn-4.button-clicked {
   transform: rotate(180deg) scale(0.95) !important;
 }
 
-#outer-btn-1.button-clicked {
+.flashtrack-page #outer-btn-1.button-clicked {
   transform: rotate(0deg) scale(0.95) !important;
 }
 
-#outer-btn-2.button-clicked {
+.flashtrack-page #outer-btn-2.button-clicked {
   transform: rotate(90deg) scale(0.95) !important;
 }
 
-#outer-btn-3.button-clicked {
+.flashtrack-page #outer-btn-3.button-clicked {
   transform: rotate(270deg) scale(0.95) !important;
 }
 
-#outer-btn-4.button-clicked {
+.flashtrack-page #outer-btn-4.button-clicked {
   transform: rotate(180deg) scale(0.95) !important;
 }
 
-/* 바깥쪽 도넛 버튼 */
-#outer-btn-1 {
-  width: 270px;
-  height: 270px;
-  top: 0;
-  left: 0;
+/* 바깥쪽 도넛 버튼 - 세그먼트가 겹치지 않도록 간격 적용 (4px) */
+.flashtrack-page #outer-btn-1 {
+  width: 262px;
+  height: 262px;
+  top: 4px;
+  left: 4px;
   transform: rotate(0deg);
   background-color: #FF6347; /* 빨강 */
 }
 
-#outer-btn-2 {
-  width: 270px;
-  height: 270px;
-  top: 0;
-  right: 0;
+.flashtrack-page #outer-btn-2 {
+  width: 262px;
+  height: 262px;
+  top: 4px;
+  right: 4px;
   transform: rotate(90deg);
   background-color: #FFA500; /* 주황 */
 }
 
-#outer-btn-3 {
-  width: 270px;
-  height: 270px;
-  bottom: 0;
-  left: 0;
+.flashtrack-page #outer-btn-3 {
+  width: 262px;
+  height: 262px;
+  bottom: 4px;
+  left: 4px;
   transform: rotate(270deg);
   background-color: #FFFF00; /* 노랑 */
 }
 
-#outer-btn-4 {
-  width: 270px;
-  height: 270px;
-  bottom: 0;
-  right: 0;
+.flashtrack-page #outer-btn-4 {
+  width: 262px;
+  height: 262px;
+  bottom: 4px;
+  right: 4px;
   transform: rotate(180deg);
   background-color: #008000; /* 초록 */
 }
 
 /* 바깥쪽 하얀 간격 원 */
-.outer-overlay {
+.flashtrack-page .outer-overlay {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -147,42 +145,42 @@ body {
   pointer-events: none;
 }
 
-/* 안쪽 도넛 버튼 */
-.inner-button {
-  width: 135px;
-  height: 135px;
+/* 안쪽 도넛 버튼 - 세그먼트 간격 맞춤 (4px) */
+.flashtrack-page .inner-button {
+  width: 127px;
+  height: 127px;
 }
 
-#inner-btn-1 {
-  top: 165px;
-  left: 165px;
+.flashtrack-page #inner-btn-1 {
+  top: 169px;
+  left: 169px;
   transform: rotate(0deg);
   background-color: #00FFFF; /* 하늘색 */
 }
 
-#inner-btn-2 {
-  top: 165px;
-  right: 165px;
+.flashtrack-page #inner-btn-2 {
+  top: 169px;
+  right: 169px;
   transform: rotate(90deg);
   background-color: #0000FF; /* 파랑 */
 }
 
-#inner-btn-3 {
-  bottom: 165px;
-  left: 165px;
+.flashtrack-page #inner-btn-3 {
+  bottom: 169px;
+  left: 169px;
   transform: rotate(270deg);
   background-color: #800080; /* 보라 */
 }
 
-#inner-btn-4 {
-  bottom: 165px;
-  right: 165px;
+.flashtrack-page #inner-btn-4 {
+  bottom: 169px;
+  right: 169px;
   transform: rotate(180deg);
   background-color: #FFC0CB; /* 핑크 */
 }
 
 /* 안쪽 하얀 간격 원 */
-.inner-overlay {
+.flashtrack-page .inner-overlay {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -196,7 +194,7 @@ body {
 }
 
 /* 메시지 창 스타일 */
-#message-box {
+.flashtrack-page #message-box {
   position: absolute; /* 게임 화면의 중앙으로 */
   top: 50%;
   left: 50%;
@@ -209,12 +207,12 @@ body {
   z-index: 1000;
 }
 
-#message-box p {
+.flashtrack-page #message-box p {
   margin-bottom: 20px;
   font-size: 1.2em;
 }
 
-#message-box button {
+.flashtrack-page #message-box button {
   padding: 10px 20px;
   margin: 5px;
   font-size: 1em;
@@ -225,31 +223,31 @@ body {
   color: white;
 }
 
-#message-box button:hover {
+.flashtrack-page #message-box button:hover {
   background-color: #555;
 }
 
-.hidden {
+.flashtrack-page .hidden {
   display: none;
 }
 
-.stage-message {
+.flashtrack-page .stage-message {
   position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.8);
-    border: 2px solid #333;
-    padding: 10px 20px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    z-index: 1000;
-    font-size: 2em;
-    color: #333;
-    border-radius: 10px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 2px solid #333;
+  padding: 10px 20px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  z-index: 1000;
+  font-size: 2em;
+  color: #333;
+  border-radius: 10px;
 }
 
-.game-group {
+.flashtrack-page .game-group {
   position: relative;
   width: 600px;
   height: 600px;
@@ -260,72 +258,70 @@ body {
 
 /* 반응형 디자인 */
 @media (max-width: 800px) {
-  .grid {
+  .flashtrack-page .grid {
     width: 450px;
     height: 450px;
   }
 
-  .quarter-button {
+  .flashtrack-page .quarter-button {
     width: 200px;
     height: 200px;
   }
 
-  .inner-button {
+  .flashtrack-page .inner-button {
     width: 100px;
     height: 100px;
   }
 
-  .outer-overlay {
+  .flashtrack-page .outer-overlay {
     width: 250px;
     height: 250px;
   }
 
-  .inner-overlay {
+  .flashtrack-page .inner-overlay {
     width: 100px;
     height: 100px;
   }
 
-  #message-box {
+  .flashtrack-page #message-box {
     width: 90%;
     padding: 10px;
   }
 
-  .game-group {
+  .flashtrack-page .game-group {
     transform: scale(0.75); /* 화면이 작아지면 비율을 줄임 */
   }
 }
 
-
 @media (max-width: 400px) {
-  .game-group {
+  .flashtrack-page .game-group {
     transform: scale(0.5); /* 더 작은 화면에서는 더 작게 축소 */
   }
 }
 
-
 @keyframes scoreAnimation {
   0% {
-      transform: scale(1);
-      color: #333;
+    transform: scale(1);
+    color: #333;
   }
   50% {
-      transform: scale(1.5);
-      color: #FFD700; /* 점수가 올라갈 때 색상을 변경 */
+    transform: scale(1.5);
+    color: #FFD700; /* 점수가 올라갈 때 색상을 변경 */
   }
   100% {
-      transform: scale(1);
-      color: #333;
+    transform: scale(1);
+    color: #333;
   }
   from { transform: scale(1); }
   to { transform: scale(1.2); }
 }
 
-.score-display span {
+.flashtrack-page .score-display span {
   display: inline-block;
   transition: transform 0.5s ease-in-out;
 }
 
-.score-message {
+.flashtrack-page .score-message {
   position: absolute;
   top: calc(50% + 30px);  /* 점수 위치에서 10px 더 아래로 설정 */
   left: 50%;

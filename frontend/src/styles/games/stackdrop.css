@@ -1,27 +1,53 @@
-/* 전체 게임 컨테이너 */
-#game-container {
-  width: 100%;
-  height: 90vh; /* 화면 높이에 맞춰 게임 영역을 90%로 설정 */
+/* 넓은 화면에서 가운데 정렬 + 최대 너비, 모바일은 전체 너비 */
+.stackdrop-page {
+  min-height: 100vh;
+  height: 100vh; /* 세로 공간 고정해서 게임 영역+버튼이 모두 보이게 */
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; 
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  background-color: #f0f0f0;
+  overflow: hidden;
+}
+
+@media (min-width: 769px) {
+  .stackdrop-page {
+    max-width: 560px;
+    padding: 0 16px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* 전체 게임 컨테이너 - 세로 공간 맞춰 버튼까지 모두 보이게 */
+.stackdrop-page #game-container {
+  width: 100%;
+  flex: 1;
+  min-height: 0; /* flex 자식이 줄어들 수 있게 */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
   background-color: #f0f0f0;
-  box-sizing: border-box; /* 패딩과 보더를 크기 계산에 포함 */
-  overflow: hidden; /* 화면 밖으로 나가는 것을 숨김 */
-  margin: 0; /* 추가적인 여백이 없도록 설정 */
+  box-sizing: border-box;
+  overflow: hidden;
+  margin: 0;
   padding: 0;
 }
 
 /* 게임 영역 */
-#game-area {
-  width: 60%;
-  flex-grow: 1; /* 동적으로 영역을 채움 */
+.stackdrop-page #game-area {
+  width: 100%;
+  flex: 1;
+  min-height: 200px;
+  max-height: 380px;
   position: relative;
   background-color: #e0e0e0;
   overflow: hidden;
   border: 2px solid #333;
-  box-sizing: border-box; /* 패딩과 경계를 포함하여 크기 계산 */
+  box-sizing: border-box;
 }
 
 /* 상단 중앙에 떨어지는 사각형 */
@@ -47,75 +73,76 @@
   overflow: hidden; /* 블럭이 영역을 넘어서지 않도록 설정 */
 }
 
-/* 하단 버튼 설정 */
-#footer {
+/* 하단 버튼 설정 - 항상 보이도록 고정 높이 */
+.stackdrop-page #footer {
   width: 100%;
-  padding: 10px 0;
+  flex-shrink: 0;
+  padding: 14px 0;
   display: flex;
   justify-content: center;
+  align-items: center;
   background-color: #333;
-  height: 12vh; /* 명시적 높이 설정 */
-  margin-top: 2vh; /* 상단에 동적으로 2vh의 공백 추가 */
+  min-height: 56px;
 }
 
-#drop-button {
-  padding: 10px 20px;
-  font-size: 1.5em;
+.stackdrop-page #drop-button {
+  padding: 10px 24px;
+  font-size: 1.25rem;
   color: white;
   background-color: #e74c3c;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
-#drop-button:hover {
+.stackdrop-page #drop-button:hover {
   background-color: #c0392b;
 }
 
-#game-info {
+.stackdrop-page #game-info {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 10px;
-  font-size: 1.5em; /* 기본 글자 크기 */
-  height: 10vh; /* 명시적 높이 설정 */
+  padding: 10px 12px;
+  font-size: 1.1rem;
+  min-height: 48px;
 }
 
-#time-left,
-#current-score,
-#high-score {
+.stackdrop-page #time-left,
+.stackdrop-page #current-score,
+.stackdrop-page #high-score {
   flex: 1;
   text-align: center;
 }
 
-/* 표준 종료 메시지 박스 스타일 시작 */
-#standard-message-box {
-  position: absolute; /* relative가 아니라 game-area 내에서 absolute로 위치 */
-  top: 50%; /* 게임 영역 기준으로 중앙 */
+/* 표준 종료 메시지 박스 스타일 */
+.stackdrop-page #standard-message-box {
+  position: fixed;
+  top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%); /* 정확히 중앙에 위치 */
+  transform: translate(-50%, -50%);
   background-color: #fff;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   text-align: center;
-  z-index: 1000; /* 메시지 창이 다른 요소보다 위에 뜨도록 설정 */
-  display: none; /* 기본적으로 안 보이도록 설정 */
+  z-index: 1000;
 }
 
-#standard-message-box p {
-  margin: 10px 0; /* 메시지와 점수에 적절한 여백 추가 */
+.stackdrop-page #standard-message-box p {
+  margin: 10px 0;
 }
 
-#button-container {
+.stackdrop-page #button-container {
   display: flex;
-  justify-content: center; /* 버튼들을 가로로 가운데 정렬 */
-  margin-top: 20px; /* 버튼 위쪽에 공간 추가 */
+  justify-content: center;
+  margin-top: 20px;
 }
 
-#button-container button {
-  margin: 0 10px; /* 버튼 간의 간격 설정 */
+.stackdrop-page #button-container button {
+  margin: 0 10px;
   padding: 10px 20px;
   font-size: 16px;
   cursor: pointer;
@@ -127,27 +154,18 @@
 
 /* 표준 종료 메시지 박스 스타일 종료 */
 
-/* 반응형 디자인: 모바일 및 작은 화면용 */
+/* 반응형: 모바일 */
 @media (max-width: 768px) {
-  #game-area {
-    width: 100%;
-    height: calc(90vh - 15vh - 10vh - 5vh); /* game-info(15vh), footer(10vh), 여백 5vh */
+  .stackdrop-page #game-info {
+    font-size: 0.95rem;
   }
 
-  #drop-button {
-    font-size: 1.2em; /* 버튼 폰트 크기 조정 */
-    padding: 8px 16px;
+  .stackdrop-page #drop-button {
+    font-size: 1.1rem;
+    padding: 10px 20px;
   }
 
-  #game-info {
-    font-size: 3.0vw; /* 화면 너비의 4%에 맞춰 글자 크기를 설정 */
-    font-weight: bold; /* 글자 굵게 설정 */
-  }
-
-  /* 반응형 디자인: 모바일 및 작은 화면용 */
-  #falling-rectangle {
-    width: 5vw; /* 작은 화면에서는 조금 더 큰 비율로 설정 */
-    height: 3vh;
-    transition: top 0.5s ease-in-out; /* 부드러운 낙하를 위한 트랜지션 */
+  .stackdrop-page #game-area {
+    max-height: 320px;
   }
 }

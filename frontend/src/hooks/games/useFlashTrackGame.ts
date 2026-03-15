@@ -33,9 +33,37 @@ export function useFlashTrackGame(onExit: () => void): UseFlashTrackGameReturn {
   const cRef = useRef(1);
   const isShowingSequenceRef = useRef(false);
   const startTimeRef = useRef(0);
+  const scoreRef = useRef(0);
   const showAudioRef = useRef<HTMLAudioElement | null>(null);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const deadAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  /** 구역별 음 높이 (1~8: inner 1-4, outer 1-4) - C4~C5 옥타브 */
+  const SEGMENT_FREQUENCIES = [261.63, 293.66, 329.63, 349.23, 392, 440, 493.88, 523.25];
+
+  const playSegmentTone = useCallback((segmentIndex: number) => {
+    const freq = SEGMENT_FREQUENCIES[segmentIndex - 1];
+    if (!freq) return;
+    try {
+      const ctx = audioContextRef.current ?? new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      if (!audioContextRef.current) audioContextRef.current = ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.12);
+    } catch (e) {
+      if (showAudioRef.current) {
+        showAudioRef.current.currentTime = 0;
+        showAudioRef.current.play().catch(() => {});
+      }
+    }
+  }, []);
 
   const setupButtonColors = useCallback(() => {
     const buttons = document.querySelectorAll('.quarter-button') as NodeListOf<HTMLElement>;
@@ -68,45 +96,52 @@ export function useFlashTrackGame(onExit: () => void): UseFlashTrackGameReturn {
     });
   }, []);
 
-  const flashButton = useCallback((button: HTMLElement) => {
+  /** 플래시 후 복원할 기준 transform (겹침 방지) */
+  const BASE_TRANSFORMS: Record<string, string> = {
+    'inner-btn-1': 'rotate(0deg)',
+    'inner-btn-2': 'rotate(90deg)',
+    'inner-btn-3': 'rotate(270deg)',
+    'inner-btn-4': 'rotate(180deg)',
+    'outer-btn-1': 'rotate(0deg)',
+    'outer-btn-2': 'rotate(90deg)',
+    'outer-btn-3': 'rotate(270deg)',
+    'outer-btn-4': 'rotate(180deg)',
+  };
+
+  const flashButton = useCallback((button: HTMLElement, segmentIndex: number) => {
     if (!button || button.classList.contains('inactive')) return;
-    
-    if (showAudioRef.current) {
-      showAudioRef.current.currentTime = 0;
-      showAudioRef.current.play().catch(e => console.log('오디오 재생 실패:', e));
-    }
-    
-    const originalTransform = button.style.transform;
+    playSegmentTone(segmentIndex);
+    const buttonId = button.id;
+    const baseTransform = BASE_TRANSFORMS[buttonId] ?? '';
     const originalTransition = button.style.transition;
     button.style.transition = 'all 0.15s ease-in-out';
-    
+
     const computedStyle = getComputedStyle(button);
     const currentTransform = computedStyle.transform;
-    
+
     if (currentTransform === 'none' || currentTransform === 'matrix(1, 0, 0, 1, 0, 0)') {
       button.style.transform = 'scale(1.15)';
     } else {
       button.style.transform = currentTransform + ' scale(1.15)';
     }
-    
+
     setTimeout(() => {
-      button.style.transform = originalTransform;
+      button.style.transform = baseTransform;
       setTimeout(() => {
         button.style.transition = originalTransition;
       }, 150);
     }, 300);
-  }, []);
+  }, [playSegmentTone]);
 
   const playSequence = useCallback(() => {
     isShowingSequenceRef.current = true;
     let i = 0;
     startTimeRef.current = performance.now();
     const interval = setInterval(() => {
-      const buttonId = sequenceRef.current[i] <= 4 
-        ? `inner-btn-${sequenceRef.current[i]}` 
-        : `outer-btn-${sequenceRef.current[i] - 4}`;
+      const seg = sequenceRef.current[i];
+      const buttonId = seg <= 4 ? `inner-btn-${seg}` : `outer-btn-${seg - 4}`;
       const button = document.getElementById(buttonId) as HTMLElement;
-      if (button) flashButton(button);
+      if (button) flashButton(button, seg);
       i++;
       if (i >= sequenceRef.current.length) {
         clearInterval(interval);
@@ -141,7 +176,11 @@ export function useFlashTrackGame(onExit: () => void): UseFlashTrackGameReturn {
 
     if (playerSequenceRef.current.length === sequenceRef.current.length) {
       const newScore = calculateScore();
-      setScore(prev => prev + newScore);
+      setScore(prev => {
+        const next = prev + newScore;
+        scoreRef.current = next;
+        return next;
+      });
 
       bRef.current++;
       if (bRef.current > activeButtonsRef.current * 2) {
@@ -165,38 +204,33 @@ export function useFlashTrackGame(onExit: () => void): UseFlashTrackGameReturn {
   }, []);
 
   const updateHighScore = useCallback(() => {
-    if (score > highScore) {
-      const newHighScore = score;
-      setHighScore(newHighScore);
-      localStorage.setItem('flashtrackhighScore', newHighScore.toString());
+    const currentScore = scoreRef.current;
+    if (currentScore > highScore) {
+      setHighScore(currentScore);
+      localStorage.setItem('flashtrackhighScore', currentScore.toString());
     }
-  }, [score, highScore]);
+  }, [highScore]);
 
   const endGame = useCallback(() => {
     if (deadAudioRef.current) {
       deadAudioRef.current.currentTime = 0;
       deadAudioRef.current.play().catch(e => console.log('패배 오디오 재생 실패:', e));
     }
-    
-    setMessageText(`게임이 끝났습니다. 최종 점수: ${score}점`);
+    const finalScore = scoreRef.current;
+    setMessageText(`게임이 끝났습니다. 최종 점수: ${finalScore}점`);
     setShowMessage(true);
     updateHighScore();
-  }, [score, updateHighScore]);
+  }, [updateHighScore]);
 
   const handleButtonClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     const target = event.currentTarget;
     if (target.classList.contains('inactive')) return;
     if (isShowingSequenceRef.current) return;
-    
-    if (showAudioRef.current) {
-      showAudioRef.current.currentTime = 0;
-      showAudioRef.current.play().catch(e => console.log('클릭 오디오 재생 실패:', e));
-    }
-    
     const buttonId = target.id;
-    const buttonNumber = buttonId.includes('inner-btn') 
-      ? parseInt(buttonId.split('-')[2]) 
-      : parseInt(buttonId.split('-')[2]) + 4;
+    const buttonNumber = buttonId.includes('inner-btn')
+      ? parseInt(buttonId.split('-')[2], 10)
+      : parseInt(buttonId.split('-')[2], 10) + 4;
+    playSegmentTone(buttonNumber);
     playerSequenceRef.current.push(buttonNumber);
     
     target.classList.add('button-clicked');
@@ -210,6 +244,7 @@ export function useFlashTrackGame(onExit: () => void): UseFlashTrackGameReturn {
   const startNewGame = useCallback(() => {
     sequenceRef.current = [];
     playerSequenceRef.current = [];
+    scoreRef.current = 0;
     setScore(0);
     activeButtonsRef.current = 3;
     bRef.current = 3;

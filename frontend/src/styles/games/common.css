@@ -1,0 +1,73 @@
+/* 공통 게임 오버 UI - 모든 미니게임에서 사용 */
+
+.game-over-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.game-over-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.game-over-message {
+  font-size: clamp(0.875rem, 2.2vw, 1rem);
+  color: #dc2626;
+  text-align: center;
+  line-height: 1.4;
+  max-width: 100%;
+  word-break: keep-all;
+  margin: 0;
+}
+
+.game-over-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.game-over-btn {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s, background-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.game-over-btn:active {
+  transform: scale(0.98);
+}
+
+.game-over-btn-primary {
+  background: #2563eb;
+  color: #fff !important;
+}
+
+.game-over-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.game-over-btn-secondary {
+  background: #e2e8f0;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.game-over-btn-secondary:hover {
+  background: #cbd5e1;
+}

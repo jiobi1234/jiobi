@@ -20,16 +20,16 @@ const nextConfig = {
           moduleIds: 'named',
         };
       }
-      // Windows에서 캐시 파일 잠금(UNKNOWN -4094)·pagefile.sys EINVAL 완화 (문자열 glob만 허용)
+      // Windows: pagefile.sys EINVAL 완화 (glob 문자열만 허용)
       config.watchOptions = {
         ...config.watchOptions,
         ignored: [
           '**/node_modules/**',
+          '**/.git/**',
+          '**/.next/**',
           '**/pagefile.sys',
           '**/hiberfil.sys',
           '**/swapfile.sys',
-          '**/.git/**',
-          '**/.next/**',
         ],
         poll: 1000,
       };

@@ -1,8 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import Navbar from '../../../../components/Navbar';
+import GameOverActions from '../../../../components/games/GameOverActions';
 import '../../../../styles/games/locationmemory.css';
 import { useLocationMemoryGame } from '../../../../hooks/games/useLocationMemoryGame';
 
@@ -16,6 +18,8 @@ export default function LocationMemoryPage() {
     remainingTime,
     showMemoryTime,
     showGameOver,
+    gameOverMessage,
+    currentShapes,
     topGridCells,
     bottomGridCells,
     handleDragStart,
@@ -27,6 +31,14 @@ export default function LocationMemoryPage() {
   } = useLocationMemoryGame(() => {
     router.push(`/${locale}/games`);
   });
+
+  /** 게임 오버 시 정답 그리드 (currentShapes → 16칸) */
+  const answerGridCells = useMemo(() => {
+    return Array.from({ length: 16 }, (_, id) => ({
+      id,
+      shape: currentShapes.find((s) => s.position === id)?.shape ?? null,
+    }));
+  }, [currentShapes]);
 
   return (
     <>
@@ -49,9 +61,32 @@ export default function LocationMemoryPage() {
 
         {showGameOver && (
           <div id="game-over-message" className="text-center mt-3">
-            <h3>게임이 끝났어요.</h3>
-            <button id="restart-button" className="btn btn-primary" onClick={handleRestart}>다시하기</button>
-            <button className="btn btn-secondary" onClick={exitGame}>종료</button>
+            <GameOverActions
+              title="게임이 끝났어요."
+              message={gameOverMessage}
+              onRestart={handleRestart}
+              onExit={exitGame}
+              restartLabel="다시하기"
+              exitLabel="종료"
+            >
+              {currentShapes.length > 0 && (
+                <div className="game-over-answer-wrap">
+                  <p className="game-over-answer-label">정답 위치</p>
+                  <div className="grid game-over-answer-grid">
+                    {answerGridCells.map((cell) => (
+                      <div key={cell.id} className="grid-cell">
+                        {cell.shape !== null && (
+                          <img
+                            src={`/images/games/shape${cell.shape}.png`}
+                            alt={`Shape ${cell.shape}`}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </GameOverActions>
           </div>
         )}
 

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import Navbar from '../../../../components/Navbar';
+import GameOverActions from '../../../../components/games/GameOverActions';
 import '../../../../styles/games/numbersequence.css';
 import { useNumberSequenceGame } from '../../../../hooks/games/useNumberSequenceGame';
 
@@ -16,6 +17,7 @@ export default function NumberSequencePage() {
     time,
     level,
     sequence,
+    userSequence,
     showGameOver,
     gameOverMessage,
     showInstruction,
@@ -29,40 +31,47 @@ export default function NumberSequencePage() {
   return (
     <>
       <Navbar />
-      <div className="container">
-        <div className="header">
-          <div className="high-score">최고점수: <span id="high-score">{highScore}점</span></div>
-          <div className="score">현재점수: <span id="score">{score}</span></div>
-          <div className="timer">남은시간: <span id="time">{time}</span></div>
+      <div className="ns-container">
+        <div className="ns-header">
+          <div>최고점수: <span>{highScore}점</span></div>
+          <div>현재점수: <span>{score}</span></div>
+          <div>남은시간: <span>{time}</span></div>
         </div>
         {showInstruction && (
-          <div id="game-instruction" className="game-instruction">
+          <p className="ns-instruction">
             숫자를 주어진 시간 안에 순서대로 모두 누르세요
-          </div>
+          </p>
         )}
-        <div id="game-board" className="game-board" style={{ gridTemplateColumns: `repeat(${level}, 1fr)`, gridTemplateRows: `repeat(${level}, 1fr)` }}>
-          {sequence.map((number, index) => (
-            <div
-              key={index}
-              className="grid-item"
-              onClick={() => handleNumberClick(number)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handleNumberClick(number);
-              }}
-            >
-              {number}
-            </div>
-          ))}
+        <div className="ns-board-wrap">
+          <div
+            className="ns-board"
+            style={{ gridTemplateColumns: `repeat(${level}, 1fr)`, gridTemplateRows: `repeat(${level}, 1fr)` }}
+          >
+            {sequence.map((number, index) => {
+            const isPressed = userSequence.includes(number);
+            return (
+              <button
+                key={index}
+                type="button"
+                className={`grid-item ${isPressed ? 'pressed' : ''}`}
+                onClick={() => handleNumberClick(number)}
+                disabled={showGameOver}
+              >
+                {number}
+              </button>
+            );
+          })}
+          </div>
         </div>
         {showGameOver && (
-          <div className="game-over-container">
-            <div className="game-over-message">{gameOverMessage}</div>
-            <div className="button-container">
-              <button className="btn btn-primary large-button" onClick={handleRestart}>다시 시작</button>
-              <button className="btn btn-secondary large-button" onClick={exitGame}>종료</button>
-            </div>
-          </div>
+          <GameOverActions
+            title="게임이 끝났어요."
+            message={gameOverMessage}
+            onRestart={handleRestart}
+            onExit={exitGame}
+            restartLabel="다시 시작"
+            exitLabel="종료"
+          />
         )}
       </div>
     </>
